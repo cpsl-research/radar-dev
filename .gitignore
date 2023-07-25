@@ -8,6 +8,7 @@ data
 __pycache__
 .ipynb_checkpoints/
 
+
 # DATA
 /sim-results/
 *.p
@@ -19,3 +20,5 @@ __pycache__
 *.tiff
 *.tif
 *.jpeg
+*.pth
+wget-log
