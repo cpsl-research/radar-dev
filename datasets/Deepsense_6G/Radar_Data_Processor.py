@@ -37,7 +37,7 @@ class RadarDataProcessor:
 
         #computed radar performance specs
         self.range_res = None
-        self.ranges = None
+        self.range_bins = None
         self.phase_shifts = None
         self.angle_bins = None
         self.thetas = None
@@ -45,35 +45,56 @@ class RadarDataProcessor:
         self.x_s = None
         self.y_s = None
 
-        #raw radar cube (indexed by [rx channel, sample, chirp, frame])
+        #raw radar cube for a single frame (indexed by [rx channel, sample, chirp])
+        #TODO: add support for DCA1000 Data Processing
         self.adc_data_cube = None
-        self.num_frames = None
 
+        #relative paths of raw radar ADC data
+        self.scenario_data_path:str = None
+        self.radar_rel_paths:np.ndarray = None
+        self.save_file_folder:str = None
+        self.save_file_name:str = None
+        
         #plotting
         self.fig = None
         self.axs = None
-        
-        #variables for saving a gif
-        self.save_as_gif_enabled = None #TODO:implement this ability
-        self.gif_file_name = "GeneratedHeatMap_zoomed.mp4"
-        self.image_frames = None
-        self.frame_duration = None
-        self.hdisplay = None
+
+        self.max_range_bin = 0
+        self.num_angle_bins = 0
+        self.power_range_dB = None #specified as [min,max]
 
         return
 
-    def set_config_params(self,
-                          chirps_per_frame,
-                          rx_channels,
-                          tx_channels,
-                          samples_per_chirp,
-                          adc_sample_rate_Hz,
-                          chirp_slope_MHz_us,
-                          start_freq_Hz,
-                          idle_time_us,
-                          ramp_end_time_us):
-        #load the parameters
-
+    def configure(self,
+                    scenario_data_path:str,
+                    radar_rel_paths:np.ndarray,
+                    save_file_folder:str,
+                    save_file_name:str,
+                    max_range_bin:int,
+                    num_angle_bins:int,
+                    power_range_dB:list,
+                    chirps_per_frame,
+                    rx_channels,
+                    tx_channels,
+                    samples_per_chirp,
+                    adc_sample_rate_Hz,
+                    chirp_slope_MHz_us,
+                    start_freq_Hz,
+                    idle_time_us,
+                    ramp_end_time_us):
+        
+        #save the data paths
+        self._init_data_paths(
+            scenario_data_path,
+            radar_rel_paths,
+            save_file_folder,
+            save_file_name
+        )
+        
+        #load the radar parameters
+        self.max_range_bin = max_range_bin
+        self.num_angle_bins = num_angle_bins
+        self.power_range_dB = power_range_dB
         self.chirps_per_frame = chirps_per_frame
         self.rx_channels = rx_channels
         self.tx_channels = tx_channels
@@ -83,37 +104,49 @@ class RadarDataProcessor:
         self.start_freq_Hz = start_freq_Hz
         self.idle_time_us = idle_time_us
         self.ramp_end_time_us = ramp_end_time_us
-
-        #compute other parameters
         
 
         #init computed params
-        self.init_computed_params()
-    
-    def set_config_params_from_cfg_file(self):
-        print("RawDataProcessor.load_config_from_cfg: Function not yet implemented")
-        pass
+        self._init_computed_params()
 
-    def init_computed_params(self):
+        return
+
+    def _init_data_paths(self,
+                        scenario_data_path:str,
+                        radar_rel_paths:np.ndarray,
+                        save_file_folder:str,
+                        save_file_name:str):
+        
+        self.scenario_data_path = scenario_data_path
+
+        #load the relative path to the radar samples, and remove the './' from the path
+        self.radar_rel_paths = np.char.replace(radar_rel_paths.astype(str),'./','')
+        
+        self.save_file_folder = save_file_folder
+        self.save_file_name = save_file_name
+        return
+
+    def _init_computed_params(self):
 
         #chirp BW
         self.chirp_BW_Hz = self.chirp_slope_MHz_us * 1e12 * self.samples_per_chirp / self.adc_sample_rate_Hz
 
         #range resolution
         self.range_res = c / (2 * self.chirp_BW_Hz)
-        self.ranges = np.arange(0,self.samples_per_chirp) * self.range_res
+        self.range_bins = np.arange(0,self.samples_per_chirp) * self.range_res
 
         #angular parameters
-        self.phase_shifts = np.arange(pi,-pi  - 2 * pi /(RadarDataProcessor.num_angle_bins - 1),-2 * pi / (RadarDataProcessor.num_angle_bins-1))
+        self.phase_shifts = np.arange(pi,-pi  - 2 * pi /(self.num_angle_bins - 1),-2 * pi / (self.num_angle_bins-1))
         self.angle_bins = np.arcsin(self.phase_shifts / pi)
         
         #mesh grid coordinates for plotting
-        self.thetas,self.rhos = np.meshgrid(self.angle_bins,self.ranges)
+        self.thetas,self.rhos = np.meshgrid(self.angle_bins,self.range_bins[:self.max_range_bin])
         self.x_s = np.multiply(self.rhos,np.sin(self.thetas))
         self.y_s = np.multiply(self.rhos,np.cos(self.thetas))
 
     def load_data_from_DCA1000(self,file_path):
         
+        #TODO: Need to update this function to support loading data in from the DCA1000
         #import the raw data
         LVDS_lanes = 4
         adc_data = np.fromfile(file_path,dtype=np.int16)
@@ -126,18 +159,35 @@ class RadarDataProcessor:
 
         #reshape to index as [rx channel, sample, chirp, frame]
         self.adc_data_cube = np.reshape(adc_data,(self.rx_channels,self.samples_per_chirp,self.chirps_per_frame,-1),order="F")
-        self.num_frames = self.adc_data_cube.shape[3]
 
-    def load_frame_from_DeepSense6G(self,radar_cube:np.array):
+    def _get_raw_ADC_data_cube(self,sample_idx:int):
+        """Get the raw ADC data cube associated with the given data sample
 
-        self.num_frames = 1
-        self.adc_data_cube = radar_cube[:,:,:,np.newaxis]
+        Args:
+            sample_idx (int): the sample index to get the adc data cube for
 
-    def compute_range_azimuth_heatmap(self,frame,chirp=0):
+        Returns:
+            np.ndarray: the adc data cube indexed by (indexed by [rx channel, sample, chirp])
+        """
+
+        path = os.path.join(self.scenario_data_path,self.radar_rel_paths[sample_idx])
+
+        return np.load(path)
+    
+    def _compute_normalized_range_azimuth_heatmap(self,adc_data_cube:np.ndarray,chirp=0):
+        """Compute the range azimuth heatmap for a single chirp in the raw ADC data frame
+
+        Args:
+            adc_data_cube (np.ndarray): _description_
+            chirp (int, optional): _description_. Defaults to 0.
+
+        Returns:
+            np.ndarray: the computed range-azimuth heatmap (normalized and thresholded)
+        """
 
         #get range angle cube
-        data = np.zeros((self.samples_per_chirp,RadarDataProcessor.num_angle_bins),dtype=complex)
-        data[:,0:self.rx_channels] = np.transpose(self.adc_data_cube[:,:,chirp,frame])
+        data = np.zeros((self.samples_per_chirp,self.num_angle_bins),dtype=complex)
+        data[:,0:self.rx_channels] = np.transpose(self.adc_data_cube[:,:,chirp])
 
         #compute Range FFT
         data = np.fft.fftshift(np.fft.fft(data,axis=0))
@@ -145,7 +195,39 @@ class RadarDataProcessor:
         #compute range response
         data = 20* np.log10(np.abs(np.fft.fftshift(np.fft.fft(data,axis=-1))))
 
+        #[for debugging] to get an idea of what the max should be
+        max_db = np.max(data)
+        
+        #perform thresholding on the input data
+        data[data <= self.power_range_dB[0]] = self.power_range_dB[0]
+        data[data >= self.power_range_dB[1]] = self.power_range_dB[1]
+
+        #normalize the data
+        data = (data - self.power_range_dB[0]) / \
+            (self.power_range_dB[1] - self.power_range_dB[0])
+
         return data
+    
+    def _plot_range_azimuth_heatmap_cartesian(self,rng_az_response:np.ndarray,ax:plt.Axes):
+
+        if not ax:
+            fig = plt.figure()
+            ax = fig.add_subplot()
+        
+        cartesian_plot = ax.pcolormesh(
+            self.x_s,
+            self.y_s,
+            rng_az_response[:self.max_range_bin,:],
+            shading='gouraud',
+            cmap="gray")
+        ax.set_xlabel('X (m)',fontsize=RadarDataProcessor.font_size_axis_labels)
+        ax.set_ylabel('Y (m)',fontsize=RadarDataProcessor.font_size_axis_labels)
+        ax.set_title('Range-Azimuth\nHeatmap (Cartesian)',fontsize=RadarDataProcessor.font_size_title)
+
+        #if enable_color_bar:
+        #    cbar = self.fig.colorbar(cartesian_plot)
+        #    cbar.set_label("Relative Power (dB)",size=RadarDataProcessor.font_size_color_bar)
+        #    cbar.ax.tick_params(labelsize=RadarDataProcessor.font_size_color_bar)
     
     def plot_range_azimuth_heatmap(self,
                                    frame,
@@ -156,7 +238,7 @@ class RadarDataProcessor:
                                    jupyter = False):
         
         #compute the range azimuth response
-        range_azimuth_response = self.compute_range_azimuth_heatmap(frame,chirp)
+        range_azimuth_response = self._compute_normalized_range_azimuth_heatmap(frame,chirp)
 
         #determine a min value to plot
         v_min = np.max(range_azimuth_response) - cutoff_val_dB
@@ -196,49 +278,6 @@ class RadarDataProcessor:
             cbar = self.fig.colorbar(cartesian_plot)
             cbar.set_label("Relative Power (dB)",size=RadarDataProcessor.font_size_color_bar)
             cbar.ax.tick_params(labelsize=RadarDataProcessor.font_size_color_bar)
-
-    
-    def _init_save_to_gif(self, frame_duration_s):
-        #initialize the image frames
-        self.image_frames = []
-        self.frame_duration = frame_duration_s
-    
-    def _save_gif_to_file(self):
-        #save to a gif
-        #imageio.mimsave(self.gif_file_name,self.image_frames,duration=self.frame_duration,loop=0)
-        #save to a mp4
-        imageio.mimsave(self.gif_file_name,self.image_frames,fps = 1/self.frame_duration)
-
-    def generate_gif(self,
-                    frame_period_s,
-                    enable_color_bar = True,
-                    cutoff_val_dB = 30,
-                    range_lims = None,
-                    jupyter = False):
-        
-        #initialize the ability to save to a .gif file
-        self._init_save_to_gif(frame_period_s)
-
-        if jupyter:
-            self.hdisplay = display("",display_id=True)
-            plt.ioff()
-        pt_1 = self.num_frames//2
-        for i in tqdm(range(self.num_frames)):
-            #plot the heatmap
-            self.plot_range_azimuth_heatmap(frame=i,
-                                            chirp=0,
-                                            enable_color_bar=enable_color_bar,
-                                            cutoff_val_dB=cutoff_val_dB,
-                                            range_lims=range_lims,
-                                            jupyter=jupyter)
-
-            buf = io.BytesIO()
-            self.fig.savefig(buf,format='png',dpi=300)
-            buf.seek(0)
-            self.image_frames.append(imageio.imread(buf))
-            plt.close(self.fig)
-        
-        self._save_gif_to_file()
 
 
 
