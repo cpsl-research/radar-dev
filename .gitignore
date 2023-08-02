@@ -21,4 +21,5 @@ __pycache__
 *.tif
 *.jpeg
 *.pth
+*.npy
 wget-log

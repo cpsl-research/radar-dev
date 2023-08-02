@@ -148,13 +148,18 @@ class LidarDataProcessor:
         return
     
     def plot_from_saved_grid(self,sample_idx:int):
+        """Generate a plot in spherical and cartesian from a previously saved spherical grid
+
+        Args:
+            sample_idx (int): The desired sample index
+        """
         
         #setup the axes
         fig,axs = plt.subplots(nrows=1,ncols=2,figsize=(10,5))
         fig.subplots_adjust(wspace=0.2)
 
         #load the grid
-        grid_spherical = self._load_grid_from_file(sample_idx)
+        grid_spherical = self.load_grid_from_file(sample_idx)
 
         #convert to spherical and then to cartesian
         points_spherical = self.grid_to_spherical_points(grid_spherical)
@@ -349,7 +354,7 @@ class LidarDataProcessor:
         #save the file to a .npy array
         np.save(path,grid_spherical)
 
-    def _load_grid_from_file(self,sample_idx:int):
+    def load_grid_from_file(self,sample_idx:int):
         """Load a previously saved grid from a file
 
         Args:
