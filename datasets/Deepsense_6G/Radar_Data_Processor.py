@@ -215,7 +215,7 @@ class RadarDataProcessor:
         #compute the frame range-azimuth response
         range_azimuth_response = self._compute_frame_normalized_range_azimuth_heatmaps(adc_data_cube)
 
-        self._save_range_az_spherical_to_file(range_azimuth_response[:,:,:self.num_chirps_to_save],sample_idx=sample_idx)
+        self._save_range_az_spherical_to_file(range_azimuth_response,sample_idx=sample_idx)
 
         return
     
@@ -263,9 +263,9 @@ class RadarDataProcessor:
     
     def _compute_frame_normalized_range_azimuth_heatmaps(self,adc_data_cube:np.ndarray):
 
-        frame_range_az_heatmaps = np.zeros((self.max_range_bin,self.num_angle_bins,self.chirps_per_frame))
+        frame_range_az_heatmaps = np.zeros((self.max_range_bin,self.num_angle_bins,self.num_chirps_to_save))
 
-        for i in range(self.chirps_per_frame):
+        for i in range(self.num_chirps_to_save):
             frame_range_az_heatmaps[:,:,i] = self._compute_chirp_normalized_range_azimuth_heatmap(adc_data_cube,chirp=i)
     
         return frame_range_az_heatmaps

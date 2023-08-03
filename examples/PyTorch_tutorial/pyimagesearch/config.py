@@ -34,7 +34,7 @@ INPUT_IMAGE_HEIGHT = 128
 # define threshold to filter weak predictions
 THRESHOLD = 0.5
 # define the path to the base output directory
-BASE_OUTPUT = "output"
+BASE_OUTPUT = "examples/PyTorch_tutorial/output"
 # define the path to the output serialized model, model training
 # plot, and testing image paths
 MODEL_PATH = os.path.join(BASE_OUTPUT, "unet_tgs_salt.pth")
