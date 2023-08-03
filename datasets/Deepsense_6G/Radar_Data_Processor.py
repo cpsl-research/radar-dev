@@ -11,9 +11,6 @@ class RadarDataProcessor:
     
     #global params
 
-    #angular FFT params
-    num_angle_bins = 64
-
     #plotting parameters
     font_size_title = 14
     font_size_axis_labels = 12
