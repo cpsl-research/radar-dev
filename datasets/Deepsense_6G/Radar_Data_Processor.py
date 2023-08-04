@@ -19,7 +19,7 @@ class RadarDataProcessor:
     def __init__(self):
         
         #given radar parameters
-        self.chirps_per_frame = None
+        self.chirp_loops_per_frame = None
         self.rx_channels = None
         self.tx_channels = None
         self.samples_per_chirp = None
@@ -94,7 +94,7 @@ class RadarDataProcessor:
         self.num_chirps_to_save = num_chirps_to_save
         self.num_angle_bins = num_angle_bins
         self.power_range_dB = power_range_dB
-        self.chirps_per_frame = chirps_per_frame
+        self.chirp_loops_per_frame = chirps_per_frame
         self.rx_channels = rx_channels
         self.tx_channels = tx_channels
         self.samples_per_chirp = samples_per_chirp
@@ -242,7 +242,7 @@ class RadarDataProcessor:
         adc_data = adc_data[0:4,:] + 1j * adc_data[4:,:]
 
         #reshape to index as [rx channel, sample, chirp, frame]
-        adc_data_cube = np.reshape(adc_data,(self.rx_channels,self.samples_per_chirp,self.chirps_per_frame,-1),order="F")
+        adc_data_cube = np.reshape(adc_data,(self.rx_channels,self.samples_per_chirp,self.chirp_loops_per_frame,-1),order="F")
 
     def _get_raw_ADC_data_cube(self,sample_idx:int):
         """Get the raw ADC data cube associated with the given data sample
