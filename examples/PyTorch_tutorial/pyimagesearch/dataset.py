@@ -1,6 +1,6 @@
 # import the necessary packages
 from torch.utils.data import Dataset
-import cv2
+import numpy as np
 
 class SegmentationDataset(Dataset):
 	def __init__(self, imagePaths, maskPaths, transforms):
@@ -17,12 +17,12 @@ class SegmentationDataset(Dataset):
 	def __getitem__(self, idx):
 		# grab the image path from the current index
 		imagePath = self.imagePaths[idx]
-		
+		maskPath = self.maskPaths[idx]
 		# load the image from disk, swap its channels from BGR to RGB,
 		# and read the associated mask from disk in grayscale mode
-		image = cv2.imread(imagePath)
-		image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-		mask = cv2.imread(self.maskPaths[idx], 0)
+		image = np.load(imagePath)
+		
+		mask = np.load(maskPath)
 		
 		# check to see if we are applying any transformations
 		if self.transforms is not None:
