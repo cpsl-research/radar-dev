@@ -1,6 +1,7 @@
 import os
 import numpy as np
 from scipy.constants import c,pi
+from scipy.io import loadmat
 import matplotlib.pyplot as plt
 import imageio
 import io
@@ -255,6 +256,11 @@ class RadarDataProcessor:
         """
 
         path = os.path.join(self.scenario_data_path,self.radar_rel_paths[sample_idx])
+
+        if ".npy" in path:
+            return np.load(path)
+        elif ".mat" in path:
+            return loadmat(path)['data']
 
         return np.load(path)
     
