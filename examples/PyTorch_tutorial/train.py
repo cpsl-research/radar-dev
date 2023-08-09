@@ -17,22 +17,36 @@ import matplotlib.pyplot as plt
 import torch
 import time
 import os
+import numpy as np
+from os import listdir
 
 #empty the cuda cache
 empty_cache()
 
 # load the image and mask filepaths in a sorted manner
-imagePaths = sorted(list(paths.list_images(config.IMAGE_DATASET_PATH)))
-maskPaths = sorted(list(paths.list_images(config.MASK_DATASET_PATH)))
+
+def list_files(directory, extension):
+    return (os.path.join(directory, f) for f in os.listdir(directory) if f.endswith(extension))
+
+
+directory_im = config.IMAGE_DATASET_PATH
+directory_mas = config.MASK_DATASET_PATH
+extension = '.npy'
+
+
+imagePaths = sorted(list_files(directory_im, extension))
+maskPaths = sorted(list_files(directory_mas, extension))
 
 # partition the data into training and testing splits using 85% of
 # the data for training and the remaining 15% for testing
+
 split = train_test_split(imagePaths, maskPaths,
 	test_size=config.TEST_SPLIT, random_state=42)
 
 # unpack the data split
 (trainImages, testImages) = split[:2]
 (trainMasks, testMasks) = split[2:]
+
 
 # write the testing image paths to disk so that we can use then
 # when evaluating/testing our model
@@ -43,10 +57,8 @@ f.write("\n".join(testImages))
 f.close()
 
 # define transformations
-transforms = transforms.Compose([transforms.ToPILImage(),
- 	transforms.Resize((config.INPUT_IMAGE_HEIGHT,
-		config.INPUT_IMAGE_WIDTH)),
-	transforms.ToTensor()])
+transforms = transforms.Compose([transforms.ToTensor(), transforms.Resize((config.INPUT_IMAGE_HEIGHT,
+		config.INPUT_IMAGE_WIDTH))])
 
 # create the train and test datasets
 trainDS = SegmentationDataset(imagePaths=trainImages, maskPaths=trainMasks,
@@ -93,7 +105,7 @@ for e in tqdm(range(config.NUM_EPOCHS)):
 	for (i, (x, y)) in enumerate(trainLoader):
 		
 		# send the input to the device
-		(x, y) = (x.to(config.DEVICE), y.to(config.DEVICE))
+		(x, y) = (x.to(config.DEVICE).float(), y.to(config.DEVICE).float())
 		
 		# perform a forward pass and calculate the training loss
 		pred = unet(x)
@@ -117,7 +129,7 @@ for e in tqdm(range(config.NUM_EPOCHS)):
 		for (x, y) in testLoader:
 			
 			# send the input to the device
-			(x, y) = (x.to(config.DEVICE), y.to(config.DEVICE))
+			(x, y) = (x.to(config.DEVICE).float(), y.to(config.DEVICE).float())
 			
 			# make the predictions and calculate the validation loss
 			pred = unet(x)

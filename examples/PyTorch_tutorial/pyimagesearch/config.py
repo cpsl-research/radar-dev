@@ -3,11 +3,11 @@ import torch
 import os
 
 # base path of the dataset
-DATASET_PATH = "/data/TGS_Salt_Identification/train"
+DATASET_PATH = "/data/DeepSense6G/stationary_scenarios/scenario31/generated_dataset"
 
 # define the path to the images and masks dataset
-IMAGE_DATASET_PATH = os.path.join(DATASET_PATH, "images")
-MASK_DATASET_PATH = os.path.join(DATASET_PATH, "masks")
+IMAGE_DATASET_PATH = os.path.join(DATASET_PATH, "radar")
+MASK_DATASET_PATH = os.path.join(DATASET_PATH, "lidar")
 
 # define the test split
 TEST_SPLIT = 0.15
@@ -29,12 +29,12 @@ INIT_LR = 0.001
 NUM_EPOCHS = 40
 BATCH_SIZE = 64
 # define the input image dimensions
-INPUT_IMAGE_WIDTH = 128
-INPUT_IMAGE_HEIGHT = 128
+INPUT_IMAGE_WIDTH = 256
+INPUT_IMAGE_HEIGHT = 256
 # define threshold to filter weak predictions
 THRESHOLD = 0.5
 # define the path to the base output directory
-BASE_OUTPUT = "examples/PyTorch_tutorial/output"
+BASE_OUTPUT = "output"
 # define the path to the output serialized model, model training
 # plot, and testing image paths
 MODEL_PATH = os.path.join(BASE_OUTPUT, "unet_tgs_salt.pth")
