@@ -1,6 +1,7 @@
 import os
 import numpy as np
 from scipy.constants import c,pi
+from scipy.io import loadmat
 import matplotlib.pyplot as plt
 import imageio
 import io
@@ -141,6 +142,10 @@ class RadarDataProcessor:
         self.phase_shifts = np.arange(pi,-pi  - 2 * pi /(self.num_angle_bins - 1),-2 * pi / (self.num_angle_bins-1))
         #round the last entry to be exactly pi
         self.phase_shifts[-1] = -1 * np.pi
+
+        #TODO: remove for our dataset
+        self.phase_shifts = self.phase_shifts * -1 #just for deepsense dataset
+
         self.angle_bins = np.arcsin(self.phase_shifts / pi)
         
         #mesh grid coordinates for plotting
@@ -256,6 +261,11 @@ class RadarDataProcessor:
 
         path = os.path.join(self.scenario_data_path,self.radar_rel_paths[sample_idx])
 
+        if ".npy" in path:
+            return np.load(path)
+        elif ".mat" in path:
+            return loadmat(path)['data']
+
         return np.load(path)
     
     def _compute_frame_normalized_range_azimuth_heatmaps(self,adc_data_cube:np.ndarray):
@@ -354,9 +364,9 @@ class RadarDataProcessor:
 
         #plot polar coordinates
         max_range = self.max_range_bin * self.range_res
-        ax.imshow(np.flip(rng_az_response),
+        ax.imshow(np.flip(rng_az_response,axis=0),
                   cmap="gray",
-                  extent=[self.angle_bins[-1],self.angle_bins[0],
+                  extent=[self.angle_bins[0],self.angle_bins[-1],
                           self.range_bins[0],max_range],
                           aspect='auto')
         ax.set_xlabel('Angle(radians)',fontsize=RadarDataProcessor.font_size_axis_labels)

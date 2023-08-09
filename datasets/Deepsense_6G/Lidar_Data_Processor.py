@@ -7,6 +7,7 @@ from natsort import natsorted
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib
 from tqdm import tqdm
 
 class LidarDataProcessor:
@@ -210,7 +211,27 @@ class LidarDataProcessor:
     def _get_point_cloud_points(self,sample_idx):
 
         path = os.path.join(self.scenario_data_path,self.lidar_rel_paths[sample_idx])
-        cloud = o3d.io.read_point_cloud(path)
+
+        if ".ply" in path:
+            cloud = o3d.io.read_point_cloud(path)
+        elif ".csv" in path:
+            # read the array from the pandas array
+            col = [' RANGE (mm)', ' SIGNAL', ' REFLECTIVITY', ' NEAR_IR'][0]
+            df = pd.read_csv(path)
+            xyz = np.stack((df[' X (mm)'].values, df[' Y (mm)'].values, df[' Z (mm)'].values)).T * 1e-3
+
+            #initialize a new point cloud array
+            cloud = o3d.geometry.PointCloud()
+            cloud.points = o3d.utility.Vector3dVector(xyz)
+            arr = np.array(df[col].values)
+
+            #assign colors (from Deepsense code)
+            # colors  Type: | float64 array of shape (num_points, 3), range [0, 1] , use numpy.asarray() to access
+            percentile = 95
+            norm_factor = np.percentile(np.array(df[col].values), percentile)
+            colormap = matplotlib.colormaps['jet']        
+            cloud.colors = o3d.utility.Vector3dVector(colormap(arr/norm_factor)[:,:3]) #:3 to remove the alpha
+            
 
         return np.asarray(cloud.points)
 
@@ -226,9 +247,20 @@ class LidarDataProcessor:
         if not ax:
             fig = plt.figure()
             ax = fig.add_subplot()
+
+        #in the lidar data, x is pointing forward, while y is pointing left, thus we need to rotate the plot
+        #rotation matrix
+        rotation_matrix = np.array([[0,1,0],
+                                   [-1,0,0],
+                                   [0,0,1]])
+        
+        #rotate the points
+        points_cartesian = np.dot(points_cartesian,rotation_matrix)
+
+
         ax.scatter(points_cartesian[:, 0], points_cartesian[:, 1],s=0.5)
-        ax.set_xlabel('X (m)',fontsize=LidarDataProcessor.font_size_axis_labels)
-        ax.set_ylabel('Y (m)',fontsize=LidarDataProcessor.font_size_axis_labels)
+        ax.set_xlabel('Y (m)',fontsize=LidarDataProcessor.font_size_axis_labels)
+        ax.set_ylabel('X (m)',fontsize=LidarDataProcessor.font_size_axis_labels)
         ax.set_title('Lidar Point Cloud (Cartesian)',fontsize=LidarDataProcessor.font_size_title)
         if show:
             plt.show()
@@ -287,6 +319,7 @@ class LidarDataProcessor:
         y = points_spherical[:,0] * np.sin(points_spherical[:,2]) * np.sin(points_spherical[:,1])
         z = points_spherical[:,0] * np.cos(points_spherical[:,2])
 
+
         return np.column_stack((x,y,z))
     
     def _filter_ranges_and_azimuths(self,points_spherical:np.ndarray):
@@ -302,7 +335,7 @@ class LidarDataProcessor:
                 (points_spherical[:,1] < self.az_angle_range_rad[1])
 
         #filter out points not in radar's elevation beamwidth
-        mask = mask & (np.abs(points_spherical[:,2] - np.pi/2) < 0.26)
+        mask = mask & (np.abs(points_spherical[:,2] - np.pi/2) < 0.26) #was 0.26
 
         return points_spherical[mask]
 
