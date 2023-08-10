@@ -231,9 +231,14 @@ class LidarDataProcessor:
             norm_factor = np.percentile(np.array(df[col].values), percentile)
             colormap = matplotlib.colormaps['jet']        
             cloud.colors = o3d.utility.Vector3dVector(colormap(arr/norm_factor)[:,:3]) #:3 to remove the alpha
-            
+        
+        points = np.asarray(cloud.points)
+        ground_plane = np.min(points[:,2])
+        non_ground_points = points[:,2] > -1
+        points = points[non_ground_points,:]
+        #filter out points not in radar's elevation beamwidth
 
-        return np.asarray(cloud.points)
+        return points
 
 # generate the point cloud
     def _plot_points_cartesian(self,points_cartesian:np.ndarray,ax:plt.Axes = None,show=True):
