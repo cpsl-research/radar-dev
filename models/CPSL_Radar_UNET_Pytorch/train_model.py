@@ -1,5 +1,6 @@
 from CPSL_Radar_UNET_Pytorch.Model import unet
 from CPSL_Radar_UNET_Pytorch.Model_Trainer import ModelTrainer
+from CPSL_Radar_UNET_Pytorch.Loss_Fns import BCE_DICE_Loss
 from torchvision import transforms
 from torch.nn import BCEWithLogitsLoss
 import sys
@@ -32,9 +33,9 @@ def main():
         working_dir="working_dir",
         transforms_to_apply=unet_transforms,
         batch_size= 256,
-        epochs=400,
+        epochs=30,
         learning_rate=0.001,
-        loss_fn= BCEWithLogitsLoss()
+        loss_fn= BCE_DICE_Loss(dice_weight=0.1,dice_smooth=1.0)
     )
 
     #train the model
