@@ -23,15 +23,15 @@ class _Block(Module):
         #store the convolution and ReLU layers
         self.conv1 = Conv2d(in_channels=in_channels,
                             out_channels=out_channels,
-                            kernel_size=(3,3),
+                            kernel_size=(7,7),
                             stride=1,
-                            padding=1)
+                            padding=3)
         self.relu = ReLU()
         self.conv2 = Conv2d(in_channels=out_channels,
                             out_channels=out_channels,
-                            kernel_size=(3,3),
+                            kernel_size=(7,7),
                             stride=1,
-                            padding=1)
+                            padding=3)
     
     def forward(self,x):
         """perform a forward pass of the Block convolution

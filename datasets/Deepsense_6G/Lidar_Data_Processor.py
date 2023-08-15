@@ -233,7 +233,7 @@ class LidarDataProcessor:
         
         points = np.asarray(cloud.points)
         ground_plane = np.min(points[:,2])
-        non_ground_points = points[:,2] > -1
+        non_ground_points = points[:,2] > -1.5
         points = points[non_ground_points,:]
         #filter out points not in radar's elevation beamwidth
 
