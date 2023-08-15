@@ -33,14 +33,13 @@ def make_predictions(model, imagePath):
 	model.eval()
 	# turn off gradient tracking
 	with torch.no_grad():
-		# load the image from disk, swap its color channels, cast it
-		# to float data type, and scale its pixel values
-		image = cv2.imread(imagePath)
-		image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-		image = image.astype("float32") / 255.0
+		# load the image from disk
 		
-		# resize the image and make a copy of it for visualization
-		image = cv2.resize(image, (128, 128))
+		image = np.load(imagePath)
+		
+		
+		# make a copy of it for visualization
+		
 		orig = image.copy()
 		
 		# find the filename and generate the path to ground truth
@@ -52,9 +51,8 @@ def make_predictions(model, imagePath):
 		
 		# load the ground-truth segmentation mask in grayscale mode
 		# and resize it
-		gtMask = cv2.imread(groundTruthPath, 0)
-		gtMask = cv2.resize(gtMask, (config.INPUT_IMAGE_HEIGHT,
-			config.INPUT_IMAGE_HEIGHT))
+		gtMask = np.load(groundTruthPath, 0)* 255
+		
 		
         # make the channel axis to be the leading one, add a batch
 		# dimension, create a PyTorch tensor, and flash it to the

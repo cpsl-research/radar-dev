@@ -27,8 +27,10 @@ class SegmentationDataset(Dataset):
 		# check to see if we are applying any transformations
 		if self.transforms is not None:
 			# apply the transformations to both image and its mask
-			image = self.transforms(image)
-			mask = self.transforms(mask)
+			transformed = self.transforms(image=image, mask=mask)
+			image = transformed["image"]
+			
+			mask = transformed["mask"]
 			
 		# return a tuple of the image and its mask
 		return (image, mask)

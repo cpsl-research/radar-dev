@@ -3,7 +3,7 @@ import torch
 import os
 
 # base path of the dataset
-DATASET_PATH = "/data/DeepSense6G/stationary_scenarios/scenario31/generated_dataset"
+DATASET_PATH = "/data/DeepSense6G/moving_scenarios/scenario36/generated_dataset"
 
 # define the path to the images and masks dataset
 IMAGE_DATASET_PATH = os.path.join(DATASET_PATH, "radar")
