@@ -13,6 +13,8 @@ from sklearn.model_selection import train_test_split
 from torchvision import transforms
 from imutils import paths
 from tqdm import tqdm
+from albumentations.pytorch import ToTensorV2
+import albumentations as A
 import matplotlib.pyplot as plt
 import torch
 import time
@@ -57,8 +59,8 @@ f.write("\n".join(testImages))
 f.close()
 
 # define transformations
-transforms = transforms.Compose([transforms.ToTensor(), transforms.Resize((config.INPUT_IMAGE_HEIGHT,
-		config.INPUT_IMAGE_WIDTH))])
+transforms = A.Compose([A.Resize(300, 300, always_apply=True), A.RandomCrop(height=256, width = 256, p=1),
+			 A.RandomRotate90(p=.5), ToTensorV2(transpose_mask=False)])
 
 # create the train and test datasets
 trainDS = SegmentationDataset(imagePaths=trainImages, maskPaths=trainMasks,
@@ -106,6 +108,7 @@ for e in tqdm(range(config.NUM_EPOCHS)):
 		
 		# send the input to the device
 		(x, y) = (x.to(config.DEVICE).float(), y.to(config.DEVICE).float())
+		y = y[:,None,:,:]
 		
 		# perform a forward pass and calculate the training loss
 		pred = unet(x)
@@ -130,6 +133,7 @@ for e in tqdm(range(config.NUM_EPOCHS)):
 			
 			# send the input to the device
 			(x, y) = (x.to(config.DEVICE).float(), y.to(config.DEVICE).float())
+			y = y[:,None,:,:]
 			
 			# make the predictions and calculate the validation loss
 			pred = unet(x)
