@@ -35,7 +35,7 @@ def main():
         batch_size= 64,
         epochs=40,
         learning_rate=0.001,
-        loss_fn= FocalLoss(alpha=0.25, gamma=2,reduction="mean")
+        loss_fn= BCE_DICE_Loss(0.1,dice_smooth=1)
     )
 
     #train the model
