@@ -92,8 +92,13 @@ class ModelTrainer:
     
     def _init_test_train_split(self):
 
+        #for random train and val
+        # self.train_inputs,self.test_inputs,self.train_outputs,self.test_outputs = \
+        #     train_test_split(self.input_paths,self.output_paths,test_size=self.test_split,random_state=2023)
+        
+        #for non-random train and val
         self.train_inputs,self.test_inputs,self.train_outputs,self.test_outputs = \
-            train_test_split(self.input_paths,self.output_paths,test_size=self.test_split,random_state=2023)
+            train_test_split(self.input_paths,self.output_paths,test_size=self.test_split,shuffle=False)
         
         print("[INFO] saving test image paths...")
         f = open(os.path.join(self.working_dir,"test_paths.txt"),"w")
