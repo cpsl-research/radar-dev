@@ -8,7 +8,7 @@ import sys
 def main():
     #initialize the unet
     unet_model = unet(
-        encoder_input_channels= 5,
+        encoder_input_channels= 3,
         encoder_out_channels= (32,64,128,256),
         decoder_input_channels= (512,256,128,64),
         decoder_out_channels= 32,
@@ -32,10 +32,10 @@ def main():
         test_split= 0.15,
         working_dir="working_dir",
         transforms_to_apply=unet_transforms,
-        batch_size= 128,
+        batch_size= 256,
         epochs=40,
         learning_rate=0.001,
-        loss_fn= FocalLoss(alpha=0.25,gamma=2.0,reduction="mean")
+        loss_fn= FocalLoss(alpha=0.25, gamma=2,reduction="mean")
     )
 
     #train the model

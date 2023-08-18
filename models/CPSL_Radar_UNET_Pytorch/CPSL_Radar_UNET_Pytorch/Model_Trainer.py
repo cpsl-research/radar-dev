@@ -93,7 +93,7 @@ class ModelTrainer:
     def _init_test_train_split(self):
 
         self.train_inputs,self.test_inputs,self.train_outputs,self.test_outputs = \
-            train_test_split(self.input_paths,self.output_paths,test_size=self.test_split)
+            train_test_split(self.input_paths,self.output_paths,test_size=self.test_split,random_state=2023)
         
         print("[INFO] saving test image paths...")
         f = open(os.path.join(self.working_dir,"test_paths.txt"),"w")
