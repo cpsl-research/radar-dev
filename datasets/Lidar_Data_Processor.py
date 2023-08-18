@@ -231,9 +231,15 @@ class LidarDataProcessor:
             colormap = matplotlib.colormaps['jet']        
             cloud.colors = o3d.utility.Vector3dVector(colormap(arr/norm_factor)[:,:3]) #:3 to remove the alpha
         
+        elif ".npy" in path:
+            #read the array from the .npy file
+            xyz = np.load(path)[:,:3]
+            cloud = o3d.geometry.PointCloud()
+            cloud.points = o3d.utility.Vector3dVector(xyz)
+        
         points = np.asarray(cloud.points)
         ground_plane = np.min(points[:,2])
-        non_ground_points = points[:,2] > -1.5
+        non_ground_points = points[:,2] > -0.2
         points = points[non_ground_points,:]
         #filter out points not in radar's elevation beamwidth
 
@@ -254,18 +260,23 @@ class LidarDataProcessor:
 
         #in the lidar data, x is pointing forward, while y is pointing left, thus we need to rotate the plot
         #rotation matrix
-        rotation_matrix = np.array([[0,1,0],
-                                   [-1,0,0],
-                                   [0,0,1]])
+        rotation_matrix_deepSense = np.array([[0,1,0],
+                                            [-1,0,0],
+                                            [0,0,1]])
+        
+        rotation_matrix_CPSL_gnd = np.array([[-1,0,0],
+                                             [0,-1,0],
+                                             [0,0,1]])
         
         #rotate the points
-        points_cartesian = np.dot(points_cartesian,rotation_matrix)
+        points_cartesian = np.dot(points_cartesian,rotation_matrix_CPSL_gnd)
 
 
         ax.scatter(points_cartesian[:, 0], points_cartesian[:, 1],s=0.5)
         ax.set_xlabel('Y (m)',fontsize=LidarDataProcessor.font_size_axis_labels)
         ax.set_ylabel('X (m)',fontsize=LidarDataProcessor.font_size_axis_labels)
         ax.set_title('Lidar Point Cloud (Cartesian)',fontsize=LidarDataProcessor.font_size_title)
+        ax.set_ylim(0,)
         if show:
             plt.show()
 

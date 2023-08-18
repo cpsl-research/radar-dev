@@ -38,6 +38,7 @@ class RadarDataProcessor:
         self.range_bins = None
         self.phase_shifts = None
         self.angle_bins = None
+        self.angle_bin_idxs_to_plot = None
         self.thetas = None
         self.rhos = None
         self.x_s = None
@@ -70,6 +71,7 @@ class RadarDataProcessor:
                     save_file_name:str,
                     max_range_bin:int,
                     num_chirps_to_save:int,
+                    radar_fov:list,
                     num_angle_bins:int,
                     power_range_dB:list,
                     chirps_per_frame,
@@ -93,6 +95,7 @@ class RadarDataProcessor:
         #load the radar parameters
         self.max_range_bin = max_range_bin
         self.num_chirps_to_save = num_chirps_to_save
+        self.radar_fov = radar_fov
         self.num_angle_bins = num_angle_bins
         self.power_range_dB = power_range_dB
         self.chirp_loops_per_frame = chirps_per_frame
@@ -111,6 +114,7 @@ class RadarDataProcessor:
 
         #print the max range
         print("max range: {}m".format(self.max_range_bin * self.range_res))
+        print("num actual angle bins: {}".format(np.sum(self.angle_bin_idxs_to_plot)))
 
         return
 
@@ -148,8 +152,11 @@ class RadarDataProcessor:
 
         self.angle_bins = np.arcsin(self.phase_shifts / pi)
         
+        #define the angle bins to plot
+        self.angle_bin_idxs_to_plot = (self.angle_bins > self.radar_fov[0]) & (self.angle_bins < self.radar_fov[1])
+        
         #mesh grid coordinates for plotting
-        self.thetas,self.rhos = np.meshgrid(self.angle_bins,self.range_bins[:self.max_range_bin])
+        self.thetas,self.rhos = np.meshgrid(self.angle_bins[self.angle_bin_idxs_to_plot],self.range_bins[:self.max_range_bin])
         self.x_s = np.multiply(self.rhos,np.sin(self.thetas))
         self.y_s = np.multiply(self.rhos,np.cos(self.thetas))
 
@@ -332,7 +339,7 @@ class RadarDataProcessor:
         cartesian_plot = ax.pcolormesh(
             self.x_s,
             self.y_s,
-            rng_az_response[:self.max_range_bin,:],
+            rng_az_response[:self.max_range_bin,self.angle_bin_idxs_to_plot],
             shading='gouraud',
             cmap="gray")
         ax.set_xlabel('X (m)',fontsize=RadarDataProcessor.font_size_axis_labels)
@@ -364,9 +371,11 @@ class RadarDataProcessor:
 
         #plot polar coordinates
         max_range = self.max_range_bin * self.range_res
-        ax.imshow(np.flip(rng_az_response,axis=0),
+        min_angle = min(self.angle_bins[self.angle_bin_idxs_to_plot])
+        max_angle = max(self.angle_bins[self.angle_bin_idxs_to_plot])
+        ax.imshow(np.flip(rng_az_response[:self.max_range_bin,self.angle_bin_idxs_to_plot],axis=0),
                   cmap="gray",
-                  extent=[self.angle_bins[0],self.angle_bins[-1],
+                  extent=[max_angle,min_angle,
                           self.range_bins[0],max_range],
                           aspect='auto')
         ax.set_xlabel('Angle(radians)',fontsize=RadarDataProcessor.font_size_axis_labels)
