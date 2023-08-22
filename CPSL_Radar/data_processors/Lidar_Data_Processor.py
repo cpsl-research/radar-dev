@@ -22,8 +22,7 @@ class LidarDataProcessor:
         self.configured = False
         
         #relative paths of lidar pointcloud data for each sample
-        self.scenario_data_path:str = None
-        self.lidar_rel_paths:np.ndarray = None
+        self.lidar_data_paths:list = None
         self.save_file_folder:str = None
         self.save_file_name:str = None
 
@@ -41,19 +40,12 @@ class LidarDataProcessor:
         self.az_angle_bins = None
     
     def configure(self,
-                  scenario_data_path:str,
-                  relative_paths:np.ndarray,
-                  save_file_folder:str,
-                  save_file_name:str,
                   max_range_m:float = 100,
                   num_range_bins:int = 256,
                   angle_range_rad:list=[0,np.pi],
                   num_angle_bins:int = 256):
         
         self.configured = True
-
-        #configure data paths
-        self._init_data_paths(scenario_data_path,relative_paths,save_file_folder,save_file_name)
 
         #configure azimuth angle bins
         self._init_az_angle_bins(angle_range_rad,num_angle_bins)
@@ -62,26 +54,19 @@ class LidarDataProcessor:
         self._init_range_bins(max_range_m,num_range_bins)
         pass
     
-    def _init_data_paths(self,
-                         scenario_data_path:str,
-                           relative_paths:np.ndarray,
+    def init_data_paths(self,
+                         lidar_data_paths:list,
                            save_file_folder:str,
                            save_file_name:str):
         """Initialize the paths to the lidar data
 
         Args:
-            scenario_data_path (str): the path to the scenario folder
-            relative_paths (np.ndarray): the list of relative paths to each lidar data frame
+            lidar_data_paths (list): the list of paths to each lidar data frame
             save_file_folder (str): path to the folder to save the computed grid
             save_file_name (str): the base name of the file to save (will be save_file_name_#.npy)
         """
 
-        #load the path to the dataset scenario
-        self.scenario_data_path = scenario_data_path
-
-        #load the relative path to the lidar samples, and remove './' from each address
-        self.lidar_rel_paths = np.char.replace(relative_paths.astype(str),'./','')
-        
+        self.lidar_data_paths = lidar_data_paths
         self.save_file_folder = save_file_folder
         self.save_file_name = save_file_name
         return
@@ -118,16 +103,29 @@ class LidarDataProcessor:
 
         self.range_bins = np.flip(np.arange(0,self.max_range_m,self.range_res_m))
 
-    def plot_pointcloud(self,sample_idx:int):
+    def plot_pointcloud(
+            self,
+            sample_idx:int, 
+            ax_cartesian = None,
+            ax_spherical = None,
+            show = True):
         """Plot the pointcloud in cartesian and spherical coordinates
 
         Args:
-            sample_idx (int): The sample index
+            sample_idx (int): The sample index,
+            ax_cartesian (Axes): axes to plot the cartesian plot on. Defaults to None
+            ax_spherical (Axes): axes to plot the spherical plot on. Defaults to None
+            show (bool): on True shows the plot. Defaults to True
         """
 
         #setup the axes
-        fig,axs = plt.subplots(nrows=1,ncols=2,figsize=(10,5))
-        fig.subplots_adjust(wspace=0.2)
+        if (ax_cartesian == None) or (ax_spherical == None):
+
+            fig,axs = plt.subplots(nrows=1,ncols=2,figsize=(10,5))
+            fig.subplots_adjust(wspace=0.2)
+
+            ax_cartesian = axs[0]
+            ax_spherical = axs[1]
 
         #get the cartesian point cloud
         points_cartesian = self._get_point_cloud_points(sample_idx)
@@ -138,25 +136,40 @@ class LidarDataProcessor:
         points_cartesian = self._convert_spherical_to_cartesian(points_spherical)
 
         #plot the points in cartesian
-        self._plot_points_cartesian(points_cartesian,ax=axs[0],show=False)
+        self._plot_points_cartesian(points_cartesian,ax=ax_cartesian,show=False)
 
         #generate the spherical points as a grid
         grid = self.points_spherical_to_grid(points_spherical)
-        self._plot_grid_spherial(grid,ax=axs[1],show=False)
+        self._plot_grid_spherial(grid,ax=ax_spherical,show=False)
 
-        plt.show()
+        if show:
+            plt.show()
         return
     
-    def plot_from_saved_grid(self,sample_idx:int):
+    def plot_from_saved_grid(
+            self,
+            sample_idx:int, 
+            ax_cartesian = None,
+            ax_spherical = None,
+            show = True):
         """Generate a plot in spherical and cartesian from a previously saved spherical grid
 
         Args:
-            sample_idx (int): The desired sample index
+            sample_idx (int): The sample index,
+            ax_cartesian (Axes): axes to plot the cartesian plot on. Defaults to None
+            ax_spherical (Axes): axes to plot the spherical plot on. Defaults to None
+            show (bool): on True shows the plot. Defaults to True
         """
         
         #setup the axes
-        fig,axs = plt.subplots(nrows=1,ncols=2,figsize=(10,5))
-        fig.subplots_adjust(wspace=0.2)
+
+        if (ax_cartesian == None) or (ax_spherical == None):
+
+            fig,axs = plt.subplots(nrows=1,ncols=2,figsize=(10,5))
+            fig.subplots_adjust(wspace=0.2)
+
+            ax_cartesian = axs[0]
+            ax_spherical = axs[1]
 
         #load the grid
         grid_spherical = self.load_grid_from_file(sample_idx)
@@ -166,12 +179,13 @@ class LidarDataProcessor:
         points_cartesian = self._convert_spherical_to_cartesian(points_spherical)
 
         #plot points in cartesian
-        self._plot_points_cartesian(points_cartesian,ax=axs[0],show=False)
+        self._plot_points_cartesian(points_cartesian,ax=ax_cartesian,show=False)
 
         #plot the points in spherical from the grid
-        self._plot_grid_spherial(grid_spherical,ax=axs[1],show=False)
+        self._plot_grid_spherial(grid_spherical,ax=ax_spherical,show=False)
 
-        plt.show()
+        if show:
+            plt.show()
 
     
     def generate_and_save_grid(self,sample_idx:int):
@@ -198,7 +212,7 @@ class LidarDataProcessor:
         """Save all of the loaded lidar point clouds to files
         """
 
-        num_files = len(self.lidar_rel_paths)
+        num_files = len(self.lidar_data_paths)
 
         for i in tqdm(range(num_files)):
             self.generate_and_save_grid(sample_idx=i)
@@ -209,7 +223,7 @@ class LidarDataProcessor:
 #getting a point cloud
     def _get_point_cloud_points(self,sample_idx):
 
-        path = os.path.join(self.scenario_data_path,self.lidar_rel_paths[sample_idx])
+        path = self.lidar_data_paths[sample_idx]
 
         if ".ply" in path:
             cloud = o3d.io.read_point_cloud(path)
@@ -396,7 +410,7 @@ class LidarDataProcessor:
         """
 
         #determine the full path and file name
-        file_name = "{}_{}.npy".format(self.save_file_name,sample_idx)
+        file_name = "{}_{}.npy".format(self.save_file_name,sample_idx + 10000)
         path = os.path.join(self.save_file_folder,file_name)
 
         #save the file to a .npy array
@@ -413,7 +427,7 @@ class LidarDataProcessor:
         """
 
         #determine the full path and file name
-        file_name = "{}_{}.npy".format(self.save_file_name,sample_idx)
+        file_name = "{}_{}.npy".format(self.save_file_name,sample_idx + 10000)
         path = os.path.join(self.save_file_folder,file_name)
 
         #load the grid

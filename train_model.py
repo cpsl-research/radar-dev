@@ -1,8 +1,14 @@
-from CPSL_Radar_UNET_Pytorch.Model import unet
-from CPSL_Radar_UNET_Pytorch.Model_Trainer import ModelTrainer
-from CPSL_Radar_UNET_Pytorch.Loss_Fns import BCE_DICE_Loss, FocalLoss
-from torchvision import transforms
+from CPSL_Radar.models.unet import unet
+from CPSL_Radar.trainer import Trainer
+
+#loss functions
+from CPSL_Radar.losses.BCE_dice_loss import BCE_DICE_Loss
+from CPSL_Radar.losses.dice_loss import DiceLoss
+from CPSL_Radar.losses.focal_loss import FocalLoss
+
+#other torch functions
 from torch.nn import BCEWithLogitsLoss
+from torchvision import transforms
 import sys
 
 def main():
@@ -24,15 +30,15 @@ def main():
     ]
 
     #initialize the model training
-    model_trainer = ModelTrainer(
+    model_trainer = Trainer(
         model= unet_model,
-        dataset_path= "/data/david/CPSL_Ground/dataset_10Hz/generated_dataset/",
+        dataset_path= "/data/david/CPSL_Ground/train",
         input_directory="radar",
         output_directory="lidar",
         test_split= 0.15,
         working_dir="working_dir",
         transforms_to_apply=unet_transforms,
-        batch_size= 64,
+        batch_size= 1024,
         epochs=40,
         learning_rate=0.001,
         loss_fn= BCE_DICE_Loss(0.1,dice_smooth=1)

@@ -1,6 +1,6 @@
 from torch.nn import BCEWithLogitsLoss
 from torch.optim import Adam
-from CPSL_Radar_UNET_Pytorch.Segmentation_Dataset import SegmentationDataset
+from CPSL_Radar.datasets.Segmentation_Dataset import SegmentationDataset
 from torch.nn import Module
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
@@ -12,7 +12,7 @@ import torch
 import time
 import os
 
-class ModelTrainer:
+class Trainer:
 
     def __init__(self,
                  model:Module,
@@ -222,6 +222,3 @@ class ModelTrainer:
         plt.ylabel("Loss")
         plt.legend(loc="lower left")
         plt.savefig(os.path.join(self.working_dir,"training_plot.png"))
-    
-ModelTrainer
-

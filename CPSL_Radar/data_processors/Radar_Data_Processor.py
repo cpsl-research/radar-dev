@@ -48,8 +48,7 @@ class RadarDataProcessor:
         #TODO: add support for DCA1000 Data Processing
 
         #relative paths of raw radar ADC data
-        self.scenario_data_path:str = None
-        self.radar_rel_paths:np.ndarray = None
+        self.radar_data_paths:list = None
         self.save_file_folder:str = None
         self.save_file_name:str = None
         
@@ -65,10 +64,6 @@ class RadarDataProcessor:
         return
 
     def configure(self,
-                    scenario_data_path:str,
-                    radar_rel_paths:np.ndarray,
-                    save_file_folder:str,
-                    save_file_name:str,
                     max_range_bin:int,
                     num_chirps_to_save:int,
                     radar_fov:list,
@@ -83,14 +78,6 @@ class RadarDataProcessor:
                     start_freq_Hz,
                     idle_time_us,
                     ramp_end_time_us):
-        
-        #save the data paths
-        self._init_data_paths(
-            scenario_data_path,
-            radar_rel_paths,
-            save_file_folder,
-            save_file_name
-        )
         
         #load the radar parameters
         self.max_range_bin = max_range_bin
@@ -118,17 +105,12 @@ class RadarDataProcessor:
 
         return
 
-    def _init_data_paths(self,
-                        scenario_data_path:str,
-                        radar_rel_paths:np.ndarray,
+    def init_data_paths(self,
+                        radar_data_paths:list,
                         save_file_folder:str,
                         save_file_name:str):
         
-        self.scenario_data_path = scenario_data_path
-
-        #load the relative path to the radar samples, and remove the './' from the path
-        self.radar_rel_paths = np.char.replace(radar_rel_paths.astype(str),'./','')
-        
+        self.radar_data_paths = radar_data_paths
         self.save_file_folder = save_file_folder
         self.save_file_name = save_file_name
         return
@@ -160,15 +142,29 @@ class RadarDataProcessor:
         self.x_s = np.multiply(self.rhos,np.sin(self.thetas))
         self.y_s = np.multiply(self.rhos,np.cos(self.thetas))
 
-    def plot_range_azimuth_response(self,sample_idx:int):
+    def plot_range_azimuth_response(
+            self,
+            sample_idx:int, 
+            ax_cartesian = None,
+            ax_spherical = None,
+            show = True):
         """Plot the range-azimuth response in cartesian and spherical coordinates
 
         Args:
-            sample_idx (int): The sample index
+            sample_idx (int): The sample index,
+            ax_cartesian (Axes): axes to plot the cartesian plot on. Defaults to None
+            ax_spherical (Axes): axes to plot the spherical plot on. Defaults to None
+            show (bool): on True shows the plot. Defaults to True
         """
+
         #setup the axes
-        fig,axs = plt.subplots(nrows=1,ncols=2,figsize=(10,5))
-        fig.subplots_adjust(wspace=0.2)
+        if (ax_cartesian == None) or (ax_spherical == None):
+
+            fig,axs = plt.subplots(nrows=1,ncols=2,figsize=(10,5))
+            fig.subplots_adjust(wspace=0.2)
+
+            ax_cartesian = axs[0]
+            ax_spherical = axs[1]
 
         #get the raw ADC data cube
         adc_data_cube = self._get_raw_ADC_data_cube(sample_idx)
@@ -178,39 +174,57 @@ class RadarDataProcessor:
 
         #plot the response in cartesian for the first chirp
         self._plot_range_azimuth_heatmap_cartesian(range_azimuth_response[:,:,0],
-                                                   ax=axs[0],
+                                                   ax=ax_cartesian,
                                                    show=False)
         
         #plot the response in spherical coordinates
         self._plot_range_azimuth_heatmap_spherical(range_azimuth_response[:,:,0],
-                                                   ax=axs[1],
+                                                   ax=ax_spherical,
                                                    show=False)
         
-        plt.show()
+        if show:
+            plt.show()
         return
     
-    def plot_from_saved_range_azimuth_response(self,sample_idx:int):
+    def plot_from_saved_range_azimuth_response(
+            self,
+            sample_idx:int, 
+            ax_cartesian = None,
+            ax_spherical = None,
+            show = True):
         """Plot the range-azimuth response in cartesian and spherical coordinates
         from a previously saved response
 
         Args:
-            sample_idx (int): The sample index
+            sample_idx (int): The sample index,
+            ax_cartesian (Axes): axes to plot the cartesian plot on. Defaults to None
+            ax_spherical (Axes): axes to plot the spherical plot on. Defaults to None
+            show (bool): on True shows the plot. Defaults to True
         """
-        #setup the axes
-        fig,axs = plt.subplots(nrows=1,ncols=2,figsize=(10,5))
-        fig.subplots_adjust(wspace=0.2)
+        
+        #set up the axes
+        if (ax_cartesian == None) or (ax_spherical == None):
+
+            fig,axs = plt.subplots(nrows=1,ncols=2,figsize=(10,5))
+            fig.subplots_adjust(wspace=0.2)
+
+            ax_cartesian = axs[0]
+            ax_spherical = axs[1]
 
         range_azimuth_response = self.load_range_az_spherical_from_file(sample_idx=sample_idx)
 
         #plot the response in cartesian for the first chirp
         self._plot_range_azimuth_heatmap_cartesian(range_azimuth_response[:,:,0],
-                                                   ax=axs[0],
+                                                   ax=ax_cartesian,
                                                    show=False)
         
         #plot the response in spherical coordinates
         self._plot_range_azimuth_heatmap_spherical(range_azimuth_response[:,:,0],
-                                                   ax=axs[1],
+                                                   ax=ax_spherical,
                                                    show=False)
+        
+        if show:
+            plt.show()
     
     def generate_and_save_range_azimuth_response(self,sample_idx:int):
         """Compute the range_azimuth response and save it to a file
@@ -232,7 +246,7 @@ class RadarDataProcessor:
         """Save all of the loaded radar range-azimuth heatmaps to files
         """
 
-        num_files = len(self.radar_rel_paths)
+        num_files = len(self.radar_data_paths)
 
         for i in tqdm(range(num_files)):
             self.generate_and_save_range_azimuth_response(sample_idx=i)
@@ -266,7 +280,7 @@ class RadarDataProcessor:
             np.ndarray: the adc data cube indexed by (indexed by [rx channel, sample, chirp])
         """
 
-        path = os.path.join(self.scenario_data_path,self.radar_rel_paths[sample_idx])
+        path = self.radar_data_paths[sample_idx]
 
         if ".npy" in path:
             return np.load(path)
@@ -400,7 +414,7 @@ class RadarDataProcessor:
         """
 
         #determine the full path and file name
-        file_name = "{}_{}.npy".format(self.save_file_name,sample_idx)
+        file_name = "{}_{}.npy".format(self.save_file_name,sample_idx + 10000)
         path = os.path.join(self.save_file_folder,file_name)
 
         #save the file to a .npy array
@@ -419,7 +433,7 @@ class RadarDataProcessor:
         """
 
         #determine the full path and file name
-        file_name = "{}_{}.npy".format(self.save_file_name,sample_idx)
+        file_name = "{}_{}.npy".format(self.save_file_name,sample_idx + 10000)
         path = os.path.join(self.save_file_folder,file_name)
 
         #load the grid
