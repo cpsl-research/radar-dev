@@ -292,17 +292,21 @@ class DatasetGenerator:
     def plot_radar_lidar_data(
             self,
             sample_idx,
+            axs = [],
             show = True
     ):
         """Plot the radar and lidar data in cartesian and spherical coordinates
 
         Args:
             sample_idx (int): The sample index,
+            axs (Axes): the axes upon which to plot the data.
+                Note: axes must have at least 2 rows and 2 columns
             show (bool): on True shows the plot. Defaults to True
         """
-        
-        fig,axs = plt.subplots(nrows=2,ncols=2,figsize=(10,10))
-        fig.subplots_adjust(wspace=0.2,hspace=0.3)
+        #create the axes
+        if len(axs) == 0:
+            fig,axs = plt.subplots(nrows=2,ncols=2,figsize=(10,10))
+            fig.subplots_adjust(wspace=0.2,hspace=0.3)
 
         self.radar_data_processor.plot_range_azimuth_response(
             sample_idx=sample_idx,
@@ -335,20 +339,20 @@ class DatasetGenerator:
             show (bool): on True shows the plot. Defaults to True
         """
         #create the axes
-        if axs.size == 0:
+        if len(axs) == 0:
             fig,axs = plt.subplots(nrows=2,ncols=2,figsize=(10,10))
             fig.subplots_adjust(wspace=0.2,hspace=0.3)
 
         self.radar_data_processor.plot_from_saved_range_azimuth_response(
             sample_idx=sample_idx,
             ax_cartesian=axs[0,0],
-            ax_spherical=axs[0,1],
+            ax_spherical=axs[1,0],
             show= False
         )
 
         self.lidar_data_processor.plot_from_saved_grid(
             sample_idx=sample_idx,
-            ax_cartesian=axs[1,0],
+            ax_cartesian=axs[0,1],
             ax_spherical=axs[1,1],
             show=False
         )
