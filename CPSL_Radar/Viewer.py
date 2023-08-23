@@ -91,7 +91,7 @@ class Viewer:
         if show:
             plt.show()
     
-    def save_video(self,video_file_name,frame_duration_s = 10e-3):
+    def save_video(self,video_file_name,fps = 10):
 
         image_frames = []
 
@@ -100,7 +100,7 @@ class Viewer:
         fig.subplots_adjust(wspace=0.2,hspace=0.4)
 
         #save each frame
-        for i in tqdm(range(self.dataset_generator.num_samples)):
+        for i in tqdm(range(600)):
             
             #clear the axes
             for ax in axs.flat:
@@ -115,13 +115,11 @@ class Viewer:
 
             #save the figure
             buf = io.BytesIO()
-            fig.savefig(buf,format='png',dpi=300)
+            fig.savefig(buf,format='png',dpi=50)
             buf.seek(0)
             image_frames.append(imageio.imread(buf))
-
-        #save the end result to a file
-        imageio.mimsave(video_file_name,image_frames,duration=frame_duration_s)
-
+        
+        imageio.mimsave(video_file_name,image_frames,fps=int(fps))
 
     
     def _plot_prediction(self, pred_lidar:np.ndarray,ax_cartesian,ax_spherical):

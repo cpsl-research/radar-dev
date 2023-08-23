@@ -39,7 +39,7 @@ def main():
         working_dir="working_dir",
         transforms_to_apply=unet_transforms,
         batch_size= 1024,
-        epochs=40,
+        epochs=100,
         learning_rate=0.001,
         loss_fn= BCE_DICE_Loss(0.1,dice_smooth=1)
     )

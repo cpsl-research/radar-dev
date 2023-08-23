@@ -23,7 +23,7 @@ def main():
         model_file_name="trained.pth"
     )
 
-    viewer.save_video("test_movie.mp4",frame_duration_s=10e-3)
+    viewer.save_video("test_movie.mp4",fps=10)
 
 
 
@@ -33,9 +33,8 @@ def init_dataset_generator(generate_dataset = False):
     scenario_folders = sorted(os.listdir(dataset_folder))
 
     train_scenarios = [os.path.join(dataset_folder,scenario_folder) for
-                    scenario_folder in scenario_folders[2:]]
-    test_scenarios = [os.path.join(dataset_folder,scenario_folder) for
-                    scenario_folder in scenario_folders[0:2]]
+                   scenario_folder in scenario_folders[0:-1]]
+    test_scenarios = [os.path.join(dataset_folder,scenario_folders[-1])]
 
     #location that we wish to save the dataset to
     generated_dataset_path = "/data/david/CPSL_Ground/test/"
@@ -52,7 +51,8 @@ def init_dataset_generator(generate_dataset = False):
         generated_dataset_path=generated_dataset_path,
         generated_file_name=generated_file_name,
         generated_radar_data_folder=generated_radar_data_folder,
-        generated_lidar_data_folder=generated_lidar_data_folder
+        generated_lidar_data_folder=generated_lidar_data_folder,
+        clear_existing_data=generate_dataset
     )
 
     dataset_generator.config_radar_lidar_data_paths(
