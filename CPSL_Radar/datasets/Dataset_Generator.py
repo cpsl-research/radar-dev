@@ -91,7 +91,7 @@ class DatasetGenerator:
         else:
             print("DatasetGenerator._check_for_directory: creating directory {}".format(path))
             os.makedirs(path)
-            pass
+        return
 
     def config_radar_lidar_data_paths_from_csv(
             self,
@@ -307,13 +307,13 @@ class DatasetGenerator:
         self.radar_data_processor.plot_range_azimuth_response(
             sample_idx=sample_idx,
             ax_cartesian=axs[0,0],
-            ax_spherical=axs[0,1],
+            ax_spherical=axs[1,0],
             show=False
         )
 
         self.lidar_data_processor.plot_pointcloud(
             sample_idx=sample_idx,
-            ax_cartesian=axs[1,0],
+            ax_cartesian=axs[0,1],
             ax_spherical=axs[1,1],
             show=False
         )

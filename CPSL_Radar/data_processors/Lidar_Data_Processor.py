@@ -290,7 +290,8 @@ class LidarDataProcessor:
         ax.set_xlabel('Y (m)',fontsize=LidarDataProcessor.font_size_axis_labels)
         ax.set_ylabel('X (m)',fontsize=LidarDataProcessor.font_size_axis_labels)
         ax.set_title('Lidar Point Cloud (Cartesian)',fontsize=LidarDataProcessor.font_size_title)
-        ax.set_ylim(0,)
+        ax.set_ylim(0,self.max_range_m)
+        ax.set_xlim(-1 * self.max_range_m, self.max_range_m)
         if show:
             plt.show()
 

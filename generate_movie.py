@@ -19,11 +19,12 @@ def main():
     viewer = Viewer(
         dataset_generator=dataset_generator,
         transforms_to_apply= unet_transforms,
-        working_dir="working_dir",
-        model_file_name="trained.pth"
+        working_dir="working_dir/CPSL_Ground",
+        model_file_name="trained_focal_b1024_e100.pth",
+        cuda_device='cuda:0'
     )
 
-    viewer.save_video("test_movie.mp4",fps=10)
+    viewer.save_video("trained_focal_b1024_e100.mp4",fps=10)
 
 
 
