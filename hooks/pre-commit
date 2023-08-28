@@ -1,4 +1,4 @@
 #!/bin/sh
 jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace examples/notebooks/*.ipynb
-jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace /Notebooks/*.ipynb
+jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace Notebooks/*.ipynb
 git add .
