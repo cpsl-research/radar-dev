@@ -320,9 +320,15 @@ class LidarDataProcessor:
             cloud.points = o3d.utility.Vector3dVector(xyz)
         
         points = np.asarray(cloud.points)
+
+        #filter out ground and elevation points
         ground_plane = np.min(points[:,2])
-        non_ground_points = points[:,2] > -0.2
-        points = points[non_ground_points,:]
+
+        valid_points = points[:,2] > -0.2 #filter out ground
+        valid_points = valid_points & (points[:,2] < 0.3) #higher elevation points
+
+
+        points = points[valid_points,:]
         #filter out points not in radar's elevation beamwidth
 
         return points

@@ -61,6 +61,29 @@ poetry run python hello_perception.py
 ```
 which will check if we can properly set up perception models using `MMDetection`.
 
+## Generating a Dataset
+
+### 1. Accessing / Initializing the dataset files
+
+1. All of the currently generated datasets can be accessed from this onedrive repository: [Ground Vehicle Datasets](https://prodduke-my.sharepoint.com/:f:/r/personal/dmh89_duke_edu/Documents/Radar%20Security%20Project/Experiments/ground_vehicle?csf=1&web=1&e=pWBOdQ). At this time, I would recommend using scenes 2-6 for training/testing
+
+2. To unzip the dataset files, you can use the following command in the terminal
+```
+unzip ZIPFILE
+```
+where ZIPFILE is the name of the file that you want to unzip. After performing this command, you will have a scenario folder containing "radar" and "lidar" subfolders with the raw data necessary for generating a dataset
+
+### 2. Generating the dataset
+To generate the dataset, open the [generate_dataset_CPSL_ground](Notebooks/generate_dataset_CPSL_ground.ipynb) jupyter notebook file located in the Notebooks folder. The complete the following steps:
+1. set the dataset_folder variable to the path where all of the dataset scenarios are stored. Ideally, if you downloaded multiple datasets, put them all in one folder. Then set the dataset_folder variable to the path of that folder.
+2. For train_scenarios and test_scenarios, declare a list of full paths to the scenario (scene) folder for all of the scenarios that you want in your test and/or train scenarios. Note that "train_scenarios" will be used for the train/validation set while the "test_scenarios" should only be used to test the model after training is complete. By default, all of the scenarios but the last one will be used for training while the last scenario will be used for testing
+3. Depending on if you are generating the test or train scenarios, specify which one you want to generate using the scenarios_to_use variable
+
+4. Set the generated_dataset_path as the folder that you want the generated dataset to be stored in. NOTE: the script will clear all previous contents in the generated_dataset_path folder out. Additionally, if the dataset folder doesn't yet exist, the script will create one for you.
+
+5. Finally, set the num_chirps_to_save and num_previous_frames variables. num_chirps_to_save determines the number of chirps to save for each frame. num_previous_frames determines the number of previous frames that will be saved. The final number of channels that will be input into the model will be: num_chirps_to_save * (1 + num_previous_frames)
+
+
 ## Important Notes
 
 I'm still in the process of migrating the demos/tutorials to this repository, so please be patient! In the meantime, I highly recommend checking out things at [ReadTheDocs][rtd-page].
