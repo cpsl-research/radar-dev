@@ -1,7 +1,8 @@
 from torch.nn import BCEWithLogitsLoss
 from torch.optim import Adam
-from CPSL_Radar_UNET_Pytorch.Segmentation_Dataset import SegmentationDataset
+from CPSL_Radar.datasets.Segmentation_Dataset import SegmentationDataset
 from torch.nn import Module
+import torch.nn as nn
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 from torchvision import transforms
@@ -12,7 +13,7 @@ import torch
 import time
 import os
 
-class ModelTrainer:
+class Trainer:
 
     def __init__(self,
                  model:Module,
@@ -25,11 +26,21 @@ class ModelTrainer:
                  batch_size = 64,
                  epochs = 40,
                  learning_rate = 0.001,
-                 loss_fn = BCEWithLogitsLoss()):
+                 loss_fn = BCEWithLogitsLoss(),
+                 cuda_device = "cuda:0",
+                 multiple_GPUs = True):
 
         #determine if device is cuda
         # determine the device to be used for training and evaluation
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        if torch.cuda.is_available():
+
+            self.device = cuda_device
+            torch.cuda.set_device(self.device)
+        else:
+            self.device = "cpu"
+        
+        #setting for multiple GPUs
+        self.multiple_GPUs = multiple_GPUs
         
         self.dataset_path = dataset_path
         self.input_directory = input_directory
@@ -71,17 +82,34 @@ class ModelTrainer:
         self.history = {"train_loss":[],"test_loss":[]} #to store train/test loss history
 
         #initialize the model
-        self.model:Module = model.to(self.device)
+        self.model:Module = None
         self.loss_fn = loss_fn
         self.learning_rate = learning_rate
-        self.optimizer = Adam(self.model.parameters(),lr=self.learning_rate)
+        self.optimizer = None
         
         #run other initialization functions
+        self._init_model(model)
         self._init_input_output_paths()
         self._init_test_train_split()
         self._init_test_train_datasets()
         self._init_test_train_data_loaders()
 
+    def _init_model(self,model:Module):
+
+        #configure for multiple GPUs if set
+        if self.multiple_GPUs and torch.cuda.is_available() and (torch.cuda.device_count() > 1):
+
+            self.model = nn.DataParallel(model)
+            print("Trainer._init_model: using {} GPUs".format(torch.cuda.device_count()))
+        else: 
+            self.model = model
+        
+        #send the model to the cuda device
+        self.model.to(self.device)
+
+        #set the optimizer
+        self.optimizer = Adam(self.model.parameters(),lr=self.learning_rate)
+    
     def _init_input_output_paths(self):
 
         input_files = sorted(os.listdir(os.path.join(self.dataset_path,self.input_directory)))
@@ -92,8 +120,13 @@ class ModelTrainer:
     
     def _init_test_train_split(self):
 
+        #for random train and val
+        # self.train_inputs,self.test_inputs,self.train_outputs,self.test_outputs = \
+        #     train_test_split(self.input_paths,self.output_paths,test_size=self.test_split,random_state=2023)
+        
+        #for non-random train and val
         self.train_inputs,self.test_inputs,self.train_outputs,self.test_outputs = \
-            train_test_split(self.input_paths,self.output_paths,test_size=self.test_split)
+            train_test_split(self.input_paths,self.output_paths,test_size=self.test_split,shuffle=False)
         
         print("[INFO] saving test image paths...")
         f = open(os.path.join(self.working_dir,"test_paths.txt"),"w")
@@ -217,6 +250,3 @@ class ModelTrainer:
         plt.ylabel("Loss")
         plt.legend(loc="lower left")
         plt.savefig(os.path.join(self.working_dir,"training_plot.png"))
-    
-ModelTrainer
-

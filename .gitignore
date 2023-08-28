@@ -21,4 +21,6 @@ __pycache__
 *.jpeg
 *.pth
 *.npy
+*.gif
+*.mp4
 wget-log
