@@ -6,6 +6,7 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 import warnings
 
 class DatasetGenerator:
@@ -59,9 +60,25 @@ class DatasetGenerator:
 
         self.generated_file_name = generated_file_name
 
+        #set the radar and lidar data paths
+        self.radar_data_processor.init_save_file_paths(
+            save_file_folder=os.path.join(self.generated_dataset_path,self.generated_radar_data_folder),
+            save_file_name=self.generated_file_name
+        )
+
+        self.lidar_data_processor.init_save_file_paths(
+            save_file_folder=os.path.join(self.generated_dataset_path,self.generated_lidar_data_foler),
+            save_file_name=self.generated_file_name
+        )
+        
         self.generated_dataset_paths_set = True
 
-        True
+        #set the number of currently generated samples
+        self.num_samples = len(
+            os.listdir(os.path.join(self.generated_dataset_path,self.generated_radar_data_folder))
+        )
+
+        return
     
     def _check_for_directory(self,path, clear_contents = False):
         """Checks to see if a directory exists, 
@@ -84,7 +101,7 @@ class DatasetGenerator:
                     file_path = os.path.join(path,file)
 
                     try:
-                        if os.path.isfile(file):
+                        if os.path.isfile(file_path):
                             os.remove(file_path)
                     except Exception as e:
                         print("Failed to delete {}".format(path))
@@ -120,9 +137,6 @@ class DatasetGenerator:
         dataframe = pd.read_csv(csv_path)
         print(f'Columns: {dataframe.columns.values}')
         print(f'Number of Rows: {dataframe.shape[0]}')
-
-        #set the number of samples
-        self.num_samples = dataframe.shape[0]
         
         #set the radar data paths
         radar_rel_paths = dataframe[radar_col_name].values
@@ -148,56 +162,38 @@ class DatasetGenerator:
     
     def config_radar_lidar_data_paths(
             self,
-            scenario_folders:list,
+            scenario_folder,
             radar_data_folder,
             lidar_data_folder
     ):
         """Configure the radar and lidar data paths (for CPSL datasets)
 
         Args:
-            scenario_folders (list): a list of paths to scenario folders containing data used to generate datasets
+            scenario_folders (str): path to scenario the folder containing data used to generate datasets
             radar_data_folder (str): the name of the folder with the radar data
             lidar_data_folder (str): the name of the folder with the lidar data
         """
-
-        self.radar_data_paths = []
-        self.lidar_data_paths = []
-
-        for folder in scenario_folders:
             
-            #get the radar relative paths
-            radar_rel_paths = [os.path.join(
-                radar_data_folder,file) for \
-                file in sorted(os.listdir(
-                os.path.join(folder,radar_data_folder)))]
-            
-            #get the lidar relative paths
-            lidar_rel_paths = [os.path.join(
-                lidar_data_folder,file) for \
-                file in sorted(os.listdir(
-                os.path.join(folder,lidar_data_folder)))]
-
-            #add the full paths to the radar and lidar data paths
-            self.radar_data_paths.extend(
-                [os.path.join(
-                    folder,relative_path) \
-                    for relative_path in radar_rel_paths
-                ]
-            )
-
-            self.lidar_data_paths.extend(
-                [os.path.join(
-                    folder,relative_path) \
-                    for relative_path in lidar_rel_paths
-                ]
-            )
+        #get the radar relative paths
+        self.radar_data_paths = [os.path.join(
+            scenario_folder,
+            radar_data_folder,file) for \
+            file in sorted(os.listdir(
+            os.path.join(scenario_folder,radar_data_folder)))]
+        
+        #get the lidar relative paths
+        self.lidar_data_paths = [os.path.join(
+            scenario_folder,
+            lidar_data_folder,file) for \
+            file in sorted(os.listdir(
+            os.path.join(scenario_folder,lidar_data_folder)))]
         
         print("DatasetGenerator.config_radar_lidar_data_paths: found {} samples".format(len(self.radar_data_paths)))
 
-        self.lidar_radar_data_paths_set = True
+        self.radar_data_processor.init_radar_data_paths(self.radar_data_paths)
+        self.lidar_data_processor.init_lidar_data_paths(self.lidar_data_paths)
 
-        #set the number of samples
-        self.num_samples = len(self.radar_data_paths)
+        self.lidar_radar_data_paths_set = True
         
         return
 
@@ -216,18 +212,9 @@ class DatasetGenerator:
             chirp_slope_MHz_us,
             start_freq_Hz,
             idle_time_us,
-            ramp_end_time_us
+            ramp_end_time_us,
+            num_previous_frames
     ):
-        
-        #configure the dataset paths
-        if self.lidar_radar_data_paths_set and self.generated_dataset_paths_set:
-            self.radar_data_processor.init_data_paths(
-                radar_data_paths=self.radar_data_paths,
-                save_file_folder=os.path.join(self.generated_dataset_path,self.generated_radar_data_folder),
-                save_file_name=self.generated_file_name
-            )
-        else:
-            raise DataSetPathsNotLoaded
 
         #configure the radar data processor
         self.radar_data_processor.configure(
@@ -244,7 +231,8 @@ class DatasetGenerator:
             chirp_slope_MHz_us,
             start_freq_Hz,
             idle_time_us,
-            ramp_end_time_us
+            ramp_end_time_us,
+            num_previous_frames
         )
 
         return
@@ -254,38 +242,79 @@ class DatasetGenerator:
             max_range_m:float = 100,
             num_range_bins:int = 256,
             angle_range_rad:list=[0,np.pi],
-            num_angle_bins:int = 256
+            num_angle_bins:int = 256,
+            num_previous_frames:int=0
     ):
-        
-        #configure the dataset paths
-        if self.lidar_radar_data_paths_set and self.generated_dataset_paths_set:
-            self.lidar_data_processor.init_data_paths(
-                lidar_data_paths =self.lidar_data_paths,
-                save_file_folder=os.path.join(self.generated_dataset_path,self.generated_lidar_data_foler),
-                save_file_name=self.generated_file_name
-            )
-        else:
-            raise DataSetPathsNotLoaded
 
         #configure the lidar data processor
         self.lidar_data_processor.configure(
             max_range_m,
             num_range_bins,
             angle_range_rad,
-            num_angle_bins
+            num_angle_bins,
+            num_previous_frames
         )
 
         return
     
-    def generate_dataset(self):
+    def generate_dataset(self, clear_contents = True):
+        """Generate a dataset from a single scenario folder
 
-        warnings.filterwarnings("ignore")
+        Args:
+            clear_contents (bool, optional): on True, clears existing saved datasets. Defaults to True.
 
-        print("DatasetGenerator.generate_dataset: Generating radar dataset")
-        self.radar_data_processor.generate_and_save_all_grids()
+        Raises:
+            DataSetPathsNotLoaded: Raised if the datapaths to the raw sensor data and save locations haven't been set
+        """
 
-        print("DatasetGenerator.generate_dataset: Generating Lidar Dataset")
-        self.lidar_data_processor.generate_and_save_all_grids()
+        #configure the dataset paths
+        if self.lidar_radar_data_paths_set and self.generated_dataset_paths_set:
+            warnings.filterwarnings("ignore")
+
+            print("DatasetGenerator.generate_dataset: Generating radar dataset")
+            self.radar_data_processor.generate_and_save_all_grids(clear_contents = clear_contents)
+
+            print("DatasetGenerator.generate_dataset: Generating Lidar Dataset")
+            self.lidar_data_processor.generate_and_save_all_grids(clear_contents = clear_contents)
+        
+            self.num_samples = len(
+            os.listdir(os.path.join(self.generated_dataset_path,self.generated_radar_data_folder))
+        )
+
+        else:
+            raise DataSetPathsNotLoaded
+    
+    def generate_dataset_from_multiple_scenarios(
+            self,
+            scenario_folders:list,
+            radar_data_folder,
+            lidar_data_folder
+    ):
+        """Generate a dataset from multiple different scenarios
+
+        Args:
+            scenario_folders (list): a list of paths to scenario folders containing data used to generate datasets
+            radar_data_folder (str): the name of the folder with the radar data
+            lidar_data_folder (str): the name of the folder with the lidar data
+        """
+
+        for i in range(len(scenario_folders)):
+            
+            if i == 0:
+                clear_contents = True
+            else:
+                clear_contents = False
+            
+            print("\n\nDatasetGenerator.generate_dataset_from_multiple_scenarios: generating dataset from scenario {} of {}: {}".format(i + 1, len(scenario_folders), scenario_folders[i]))
+            #set the radar and lidar data paths
+            self.config_radar_lidar_data_paths(
+                scenario_folder=scenario_folders[i],
+                radar_data_folder=radar_data_folder,
+                lidar_data_folder=lidar_data_folder
+            )
+
+            #generate the dataset
+            self.generate_dataset(clear_contents= clear_contents)
 
 #plotting
 

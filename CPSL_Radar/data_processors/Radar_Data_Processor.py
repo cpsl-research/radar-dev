@@ -38,7 +38,7 @@ class RadarDataProcessor:
         self.range_bins = None
         self.phase_shifts = None
         self.angle_bins = None
-        self.angle_bin_idxs_to_plot = None
+        self.angle_bins_to_keep = None
         self.thetas = None
         self.rhos = None
         self.x_s = None
@@ -51,6 +51,9 @@ class RadarDataProcessor:
         self.radar_data_paths:list = None
         self.save_file_folder:str = None
         self.save_file_name:str = None
+        self.save_file_start_offset = 0 #offset for the save file index if adding data to existing dataset
+        self.save_file_number_offset = 10000 #offset for the save file names so that they can be ordered as a sorted list
+
         
         #plotting
         self.fig = None
@@ -61,6 +64,9 @@ class RadarDataProcessor:
         self.num_angle_bins = 0
         self.power_range_dB = None #specified as [min,max]
 
+
+        #for taking into account previous frames in the radar data
+        self.num_previous_frames = 0
         return
 
     def configure(self,
@@ -77,7 +83,8 @@ class RadarDataProcessor:
                     chirp_slope_MHz_us,
                     start_freq_Hz,
                     idle_time_us,
-                    ramp_end_time_us):
+                    ramp_end_time_us,
+                    num_previous_frames=0):
         
         #load the radar parameters
         self.max_range_bin = max_range_bin
@@ -101,18 +108,35 @@ class RadarDataProcessor:
 
         #print the max range
         print("max range: {}m".format(self.max_range_bin * self.range_res))
-        print("num actual angle bins: {}".format(np.sum(self.angle_bin_idxs_to_plot)))
+        print("num actual angle bins: {}".format(np.sum(self.angle_bins_to_keep)))
+
+        #take previous frames instead of previous chirps into account
+        self.num_previous_frames = num_previous_frames
 
         return
 
-    def init_data_paths(self,
-                        radar_data_paths:list,
-                        save_file_folder:str,
-                        save_file_name:str):
-        
+    def init_radar_data_paths(self,
+                        radar_data_paths:list):
+        """Initialize the path to each of the samples used to compute the radar data
+
+        Args:
+            radar_data_paths (list): The path to the radar data
+        """
         self.radar_data_paths = radar_data_paths
+        return
+    
+    def init_save_file_paths(self,
+                             save_file_folder:str,
+                             save_file_name: str):
+        """Initialize the paths to where the generated dataset samples will be saved
+
+        Args:
+            save_file_folder (str): path to the folder where the data is to be saved
+            save_file_name (str): name of the file that the generated dataset is saved as
+        """
         self.save_file_folder = save_file_folder
         self.save_file_name = save_file_name
+
         return
 
     def _init_computed_params(self):
@@ -135,10 +159,10 @@ class RadarDataProcessor:
         self.angle_bins = np.arcsin(self.phase_shifts / pi)
         
         #define the angle bins to plot
-        self.angle_bin_idxs_to_plot = (self.angle_bins > self.radar_fov[0]) & (self.angle_bins < self.radar_fov[1])
+        self.angle_bins_to_keep = (self.angle_bins > self.radar_fov[0]) & (self.angle_bins < self.radar_fov[1])
         
         #mesh grid coordinates for plotting
-        self.thetas,self.rhos = np.meshgrid(self.angle_bins[self.angle_bin_idxs_to_plot],self.range_bins[:self.max_range_bin])
+        self.thetas,self.rhos = np.meshgrid(self.angle_bins[self.angle_bins_to_keep],self.range_bins[:self.max_range_bin])
         self.x_s = np.multiply(self.rhos,np.sin(self.thetas))
         self.y_s = np.multiply(self.rhos,np.cos(self.thetas))
 
@@ -167,11 +191,11 @@ class RadarDataProcessor:
             ax_spherical = axs[1]
 
         #get the raw ADC data cube
-        adc_data_cube = self._get_raw_ADC_data_cube(sample_idx)
+        adc_data_cube = self._get_raw_ADC_data_cube(sample_idx + self.num_previous_frames)
 
         #compute the frame range-azimuth response
         range_azimuth_response = self._compute_frame_normalized_range_azimuth_heatmaps(adc_data_cube)
-
+        
         #plot the response in cartesian for the first chirp
         self._plot_range_azimuth_heatmap_cartesian(range_azimuth_response[:,:,0],
                                                    ax=ax_cartesian,
@@ -213,13 +237,16 @@ class RadarDataProcessor:
 
         range_azimuth_response = self.load_range_az_spherical_from_file(sample_idx=sample_idx)
 
+        #account for the potential of multiple frames and chirps being plotted
+        idx_to_plot = self.num_previous_frames * self.num_chirps_to_save
+        
         #plot the response in cartesian for the first chirp
-        self._plot_range_azimuth_heatmap_cartesian(range_azimuth_response[:,:,0],
+        self._plot_range_azimuth_heatmap_cartesian(range_azimuth_response[:,:,idx_to_plot],
                                                    ax=ax_cartesian,
                                                    show=False)
         
         #plot the response in spherical coordinates
-        self._plot_range_azimuth_heatmap_spherical(range_azimuth_response[:,:,0],
+        self._plot_range_azimuth_heatmap_spherical(range_azimuth_response[:,:,idx_to_plot],
                                                    ax=ax_spherical,
                                                    show=False)
         
@@ -232,43 +259,110 @@ class RadarDataProcessor:
         Args:
             sample_idx (int): The sample index for which to generate and save the result to
         """
-        #get the raw ADC data cube
-        adc_data_cube = self._get_raw_ADC_data_cube(sample_idx)
 
-        #compute the frame range-azimuth response
-        range_azimuth_response = self._compute_frame_normalized_range_azimuth_heatmaps(adc_data_cube)
+        if self.num_previous_frames == 0:
+            #get the raw ADC data cube
+            adc_data_cube = self._get_raw_ADC_data_cube(sample_idx)
 
-        self._save_range_az_spherical_to_file(range_azimuth_response,sample_idx=sample_idx)
+            #compute the frame range-azimuth response
+            range_azimuth_response = self._compute_frame_normalized_range_azimuth_heatmaps(adc_data_cube)
 
+            #save the generated response to a file
+            self._save_range_az_spherical_to_file(range_azimuth_response,sample_idx=sample_idx)
+
+        else:
+            range_azimuth_response = np.zeros((self.max_range_bin,
+                                               np.sum(self.angle_bins_to_keep),
+                                               self.num_chirps_to_save * (self.num_previous_frames + 1)))
+
+            for i in range(self.num_previous_frames + 1):
+                #get the raw ADC data cube
+                adc_data_cube = self._get_raw_ADC_data_cube(
+                    sample_idx + i)
+
+                #compute the frame range-azimuth response
+                start_idx = i * self.num_chirps_to_save
+                stop_idx = start_idx + self.num_chirps_to_save
+                range_azimuth_response[:,:,start_idx:stop_idx] = \
+                    self._compute_frame_normalized_range_azimuth_heatmaps(adc_data_cube)
+
+
+            self._save_range_az_spherical_to_file(range_azimuth_response,sample_idx=sample_idx)
         return
     
-    def generate_and_save_all_grids(self):
-        """Save all of the loaded radar range-azimuth heatmaps to files
+    def generate_and_save_all_grids(self, clear_contents=False):
+        """Save all of the loaded radar point clouds to files
+
+        Args:
+            clear_contents(bool,optional): on True, will clear the previously generated dataset, Defaults to False
         """
 
+        self._check_save_directory(clear_contents)
+        
         num_files = len(self.radar_data_paths)
 
-        for i in tqdm(range(num_files)):
+        for i in tqdm(range(num_files - self.num_previous_frames)):
             self.generate_and_save_range_azimuth_response(sample_idx=i)
 
+# HElper Functions
+
+    #checking the save directory
+
+    def _check_save_directory(self,clear_contents = False):
+
+        path = self.save_file_folder
+
+        if os.path.isdir(path):
+            print("RadarDataProcessor._check_save_directory: found directory {}".format(path))
+
+            if clear_contents:
+                print("RadarDataProcessor._check_save_directory: clearing contents of {}".format(path))
+
+                #clear the contents
+                for file in os.listdir(path):
+                    file_path = os.path.join(path,file)
+
+                    try:
+                        if os.path.isfile(file_path):
+                            os.remove(file_path)
+                    except Exception as e:
+                        print("Failed to delete {}".format(path))
+            else:
+
+                contents = sorted(os.listdir(path))
+
+                if len(contents) > 0:
+                    last_file = contents[-1]
+
+                    #get the most recent sample number
+                    sample_number = last_file.split("_")[1]
+                    sample_number = int(sample_number.split(".")[0]) \
+                        - self.save_file_number_offset
+                
+                    #set the offset for saving files
+                    self.save_file_start_offset = sample_number
+                    print("RadarDataProcessor._check_save_directory: detected existing samples, starting on sample {}".format(self.save_file_start_offset))
+                    
+        else:
+            print("RadarDataProcessor._check_save_directory: creating directory {}".format(path))
+            os.makedirs(path)
 
 
-
-    def load_data_from_DCA1000(self,file_path):
+    # def load_data_from_DCA1000(self,file_path):
         
-        #TODO: Need to update this function to support loading data in from the DCA1000
-        #import the raw data
-        LVDS_lanes = 4
-        adc_data = np.fromfile(file_path,dtype=np.int16)
+    #     #TODO: Need to update this function to support loading data in from the DCA1000
+    #     #import the raw data
+    #     LVDS_lanes = 4
+    #     adc_data = np.fromfile(file_path,dtype=np.int16)
 
-        #reshape to get the real and imaginary parts
-        adc_data = np.reshape(adc_data, (LVDS_lanes * 2,-1),order= "F")
+    #     #reshape to get the real and imaginary parts
+    #     adc_data = np.reshape(adc_data, (LVDS_lanes * 2,-1),order= "F")
 
-        #convert into a complex format
-        adc_data = adc_data[0:4,:] + 1j * adc_data[4:,:]
+    #     #convert into a complex format
+    #     adc_data = adc_data[0:4,:] + 1j * adc_data[4:,:]
 
-        #reshape to index as [rx channel, sample, chirp, frame]
-        adc_data_cube = np.reshape(adc_data,(self.rx_channels,self.samples_per_chirp,self.chirp_loops_per_frame,-1),order="F")
+    #     #reshape to index as [rx channel, sample, chirp, frame]
+    #     adc_data_cube = np.reshape(adc_data,(self.rx_channels,self.samples_per_chirp,self.chirp_loops_per_frame,-1),order="F")
 
     def _get_raw_ADC_data_cube(self,sample_idx:int):
         """Get the raw ADC data cube associated with the given data sample
@@ -291,7 +385,10 @@ class RadarDataProcessor:
     
     def _compute_frame_normalized_range_azimuth_heatmaps(self,adc_data_cube:np.ndarray):
 
-        frame_range_az_heatmaps = np.zeros((self.max_range_bin,self.num_angle_bins,self.num_chirps_to_save))
+        frame_range_az_heatmaps = np.zeros((
+            self.max_range_bin,
+            np.sum(self.angle_bins_to_keep),
+            self.num_chirps_to_save))
 
         for i in range(self.num_chirps_to_save):
             frame_range_az_heatmaps[:,:,i] = self._compute_chirp_normalized_range_azimuth_heatmap(adc_data_cube,chirp=i)
@@ -307,6 +404,7 @@ class RadarDataProcessor:
 
         Returns:
             np.ndarray: the computed range-azimuth heatmap (normalized and thresholded)
+                NOTE: the output is cropped for only the desired ranges and angles
         """
 
         #get range angle cube
@@ -316,14 +414,14 @@ class RadarDataProcessor:
         #compute Range FFT
         data = np.fft.fftshift(np.fft.fft(data,axis=0))
 
-        #compute range response
+        #compute azimuth response
         data = 20* np.log10(np.abs(np.fft.fftshift(np.fft.fft(data,axis=-1))))
 
         #[for debugging] to get an idea of what the max should be
         max_db = np.max(data)
         
-        #filter to only output the desired ranges
-        data = data[:self.max_range_bin,:]
+        #filter to only output the desired ranges and angles
+        data = data[:self.max_range_bin,self.angle_bins_to_keep]
 
         #perform thresholding on the input data
         data[data <= self.power_range_dB[0]] = self.power_range_dB[0]
@@ -353,7 +451,7 @@ class RadarDataProcessor:
         cartesian_plot = ax.pcolormesh(
             self.x_s,
             self.y_s,
-            rng_az_response[:self.max_range_bin,self.angle_bin_idxs_to_plot],
+            rng_az_response,
             shading='gouraud',
             cmap="gray")
         ax.set_xlabel('X (m)',fontsize=RadarDataProcessor.font_size_axis_labels)
@@ -385,9 +483,9 @@ class RadarDataProcessor:
 
         #plot polar coordinates
         max_range = self.max_range_bin * self.range_res
-        min_angle = min(self.angle_bins[self.angle_bin_idxs_to_plot])
-        max_angle = max(self.angle_bins[self.angle_bin_idxs_to_plot])
-        ax.imshow(np.flip(rng_az_response[:self.max_range_bin,self.angle_bin_idxs_to_plot],axis=0),
+        min_angle = min(self.angle_bins[self.angle_bins_to_keep])
+        max_angle = max(self.angle_bins[self.angle_bins_to_keep])
+        ax.imshow(np.flip(rng_az_response,axis=0),
                   cmap="gray",
                   extent=[max_angle,min_angle,
                           self.range_bins[0],max_range],
@@ -414,7 +512,9 @@ class RadarDataProcessor:
         """
 
         #determine the full path and file name
-        file_name = "{}_{}.npy".format(self.save_file_name,sample_idx + 10000)
+        file_name = "{}_{}.npy".format(
+            self.save_file_name,
+            sample_idx + self.save_file_number_offset + self.save_file_start_offset)
         path = os.path.join(self.save_file_folder,file_name)
 
         #save the file to a .npy array
@@ -433,7 +533,9 @@ class RadarDataProcessor:
         """
 
         #determine the full path and file name
-        file_name = "{}_{}.npy".format(self.save_file_name,sample_idx + 10000)
+        file_name = "{}_{}.npy".format(
+            self.save_file_name,
+            sample_idx + self.save_file_number_offset)
         path = os.path.join(self.save_file_folder,file_name)
 
         #load the grid

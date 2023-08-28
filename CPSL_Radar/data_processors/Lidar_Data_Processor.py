@@ -25,6 +25,8 @@ class LidarDataProcessor:
         self.lidar_data_paths:list = None
         self.save_file_folder:str = None
         self.save_file_name:str = None
+        self.save_file_start_offset = 0 #offset for the save file index if adding data to existing dataset
+        self.save_file_number_offset = 10000 #offset for the save file names so that they can be ordered as a sorted list
 
         #ranges and range bins
         self.max_range_m = 0
@@ -38,12 +40,18 @@ class LidarDataProcessor:
         self.az_angle_res_rad = 0
         self.az_angle_res_deg = 0
         self.az_angle_bins = None
+
+        #for taking into account previous frames in the radar data
+        self.num_previous_frames = 0
+        # note: this is used to align samples in cases that the 
+        # radar is using previous frames. 
     
     def configure(self,
                   max_range_m:float = 100,
                   num_range_bins:int = 256,
                   angle_range_rad:list=[0,np.pi],
-                  num_angle_bins:int = 256):
+                  num_angle_bins:int = 256,
+                  num_previous_frames = 0):
         
         self.configured = True
 
@@ -52,23 +60,35 @@ class LidarDataProcessor:
 
         #configure the range bins
         self._init_range_bins(max_range_m,num_range_bins)
-        pass
+
+        #track number of previous frames to account for
+        self.num_previous_frames = num_previous_frames
+        
+        return
     
-    def init_data_paths(self,
-                         lidar_data_paths:list,
-                           save_file_folder:str,
-                           save_file_name:str):
-        """Initialize the paths to the lidar data
+    def init_lidar_data_paths(self,
+                        lidar_data_paths:list):
+        """Initialize the path to each of the samples used to compute the radar data
 
         Args:
-            lidar_data_paths (list): the list of paths to each lidar data frame
-            save_file_folder (str): path to the folder to save the computed grid
-            save_file_name (str): the base name of the file to save (will be save_file_name_#.npy)
+            lidar_data_paths (list): The path to the radar data
         """
-
         self.lidar_data_paths = lidar_data_paths
+        
+        return
+    
+    def init_save_file_paths(self,
+                             save_file_folder:str,
+                             save_file_name: str):
+        """Initialize the paths to where the generated dataset samples will be saved
+
+        Args:
+            save_file_folder (str): path to the folder where the data is to be saved
+            save_file_name (str): name of the file that the generated dataset is saved as
+        """
         self.save_file_folder = save_file_folder
         self.save_file_name = save_file_name
+
         return
     
     def _init_az_angle_bins(self,angle_range_rad:list,num_angle_bins:int):
@@ -208,22 +228,70 @@ class LidarDataProcessor:
         #save grid to a file
         self._save_grid_to_file(grid_spherical=grid,sample_idx=sample_idx)
 
-    def generate_and_save_all_grids(self):
+    def generate_and_save_all_grids(self, clear_contents=False):
         """Save all of the loaded lidar point clouds to files
+
+        Args:
+            clear_contents(bool,optional): on True, will clear the previously generated dataset, Defaults to False
         """
 
+        self._check_save_directory(clear_contents)
+        
         num_files = len(self.lidar_data_paths)
 
-        for i in tqdm(range(num_files)):
+        for i in tqdm(range(num_files - self.num_previous_frames)):
             self.generate_and_save_grid(sample_idx=i)
         
         return
 ## Helper Functions
 
+
+    #checking the save directory
+
+    def _check_save_directory(self,clear_contents = False):
+
+        path = self.save_file_folder
+
+        if os.path.isdir(path):
+            print("LidarDataProcessor._check_save_directory: found directory {}".format(path))
+
+            if clear_contents:
+                print("LidarDataProcessor._check_save_directory: clearing contents of {}".format(path))
+
+                #clear the contents
+                for file in os.listdir(path):
+                    file_path = os.path.join(path,file)
+
+                    try:
+                        if os.path.isfile(file_path):
+                            os.remove(file_path)
+                    except Exception as e:
+                        print("Failed to delete {}".format(path))
+            else:
+
+                contents = sorted(os.listdir(path))
+
+                if len(contents) > 0:
+                    last_file = contents[-1]
+
+                    #get the most recent sample number
+                    sample_number = last_file.split("_")[1]
+                    sample_number = int(sample_number.split(".")[0]) \
+                        - self.save_file_number_offset
+                
+                    #set the offset for saving files
+                    self.save_file_start_offset = sample_number
+                    print("LidarDataProcessor._check_save_directory: detected existing samples, starting on sample {}".format(self.save_file_start_offset))
+                    
+        else:
+            print("LidarDataProcessor._check_save_directory: creating directory {}".format(path))
+            os.makedirs(path)
+
 #getting a point cloud
     def _get_point_cloud_points(self,sample_idx):
-
-        path = self.lidar_data_paths[sample_idx]
+        
+        #increment the sample index to align with the radar's number of previous saved frames
+        path = self.lidar_data_paths[sample_idx + self.num_previous_frames]
 
         if ".ply" in path:
             cloud = o3d.io.read_point_cloud(path)
@@ -411,7 +479,9 @@ class LidarDataProcessor:
         """
 
         #determine the full path and file name
-        file_name = "{}_{}.npy".format(self.save_file_name,sample_idx + 10000)
+        file_name = "{}_{}.npy".format(
+            self.save_file_name,
+            sample_idx + self.save_file_number_offset + self.save_file_start_offset)
         path = os.path.join(self.save_file_folder,file_name)
 
         #save the file to a .npy array
@@ -428,7 +498,9 @@ class LidarDataProcessor:
         """
 
         #determine the full path and file name
-        file_name = "{}_{}.npy".format(self.save_file_name,sample_idx + 10000)
+        file_name = "{}_{}.npy".format(
+            self.save_file_name,
+            sample_idx + self.save_file_number_offset)
         path = os.path.join(self.save_file_folder,file_name)
 
         #load the grid
