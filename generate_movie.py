@@ -15,27 +15,32 @@ def main():
         transforms.Resize((64,48))
     ]
 
-    #initialize the viewer
+   #initialize the viewer
     viewer = Analyzer(
         dataset_generator=dataset_generator,
         transforms_to_apply= unet_transforms,
-        working_dir="working_dir/CPSL_Ground_frame_based",
-        model_file_name="trained_bce_b1024_e40.pth",
-        cuda_device='cuda:0'
+        working_dir="working_dir/",
+        model_file_name="trained.pth",
+        cuda_device="cuda:0"
     )
 
-    viewer.save_video("trained_bce_b1024_e40.mp4",fps=10)
+    viewer.save_video("trained.mp4",fps=10)
 
 
 
 def init_dataset_generator(generate_dataset = False):
     #location of the CPSL dataset we wish to process
-    dataset_folder = "/data/david/CPSL_Ground/recorded_datasets/"
-    scenario_folders = sorted(os.listdir(dataset_folder))
+    dataset_folder = "/data/david/CPSL_Ground/wilkenson_datasets/"
+
+    # scenario_folders = sorted(os.listdir(dataset_folder))
+    train_scenarios = ["4th_hallway_slow","1st_hallway_slow","4th_hallway_1"]
+
+    test_scenarios = ["1st_hallway_slow_1","1st_hallway_fast","1st_hallway_fast_spin","4th_hallway_fast","4th_hallway_fast_spin"]
 
     train_scenarios = [os.path.join(dataset_folder,scenario_folder) for
-                    scenario_folder in scenario_folders[0:-1]]
-    test_scenarios = [os.path.join(dataset_folder,scenario_folders[-1])]
+                    scenario_folder in train_scenarios]
+    test_scenarios = [os.path.join(dataset_folder,scenario_folder) for
+                    scenario_folder in [test_scenarios[2],test_scenarios[4]]]
 
     scenarios_to_use = test_scenarios
 
@@ -48,8 +53,8 @@ def init_dataset_generator(generate_dataset = False):
     lidar_data_folder = "lidar"
 
     #basic dataset settings
-    num_chirps_to_save = 1
-    num_previous_frames = 40
+    num_chirps_to_save = 40
+    num_previous_frames = 0
 
     #initialize the DatasetGenerator
     dataset_generator = DatasetGenerator()

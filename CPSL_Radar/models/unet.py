@@ -6,17 +6,19 @@ from torch.nn import ModuleList
 from torch.nn import ReLU
 from torchvision.transforms import CenterCrop
 from torch.nn import functional as F
+from torch.nn import BatchNorm2d
 import torch
 
 class _Block(Module):
 
 
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, batch_norm = True):
         """Initialize a standard convolutional block with 2 convolutional layers
 
         Args:
             in_channels (int): the number of channels on the input
             out_channels (int): the number of channels at the output
+            batch_norm(bool): on True enabled batch normalization
         """
         super().__init__()
 
@@ -32,6 +34,11 @@ class _Block(Module):
                             kernel_size=(3,3),
                             stride=1,
                             padding=1)
+        
+        self.batch_norm = batch_norm
+        if self.batch_norm:
+            self.batch_norm1 = BatchNorm2d(num_features=out_channels)
+            self.batch_norm2 = BatchNorm2d(num_features=out_channels)
     
     def forward(self,x):
         """perform a forward pass of the Block convolution
@@ -44,9 +51,13 @@ class _Block(Module):
         """
 
         x = self.conv1(x)
+        if self.batch_norm:
+            x = self.batch_norm1(x)
         x = self.relu(x)
 
         x = self.conv2(x)
+        if self.batch_norm:
+            x = self.batch_norm2(x)
         x = self.relu(x)
 
         return x

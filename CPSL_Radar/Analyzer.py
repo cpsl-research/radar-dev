@@ -114,7 +114,7 @@ class Analyzer:
             distances=chamfer_distances,
             label="Chamfer Distance",
             show=False,
-            percentile=0.95,
+            percentile=1.0,
             ax = ax
         )
 
@@ -258,6 +258,7 @@ class Analyzer:
         ax.set_xlabel('Error (m)',fontsize=Analyzer.font_size_axis_labels)
         ax.set_ylabel('CDF',fontsize=Analyzer.font_size_axis_labels)
         ax.set_title("Error Comparison",fontsize=Analyzer.font_size_title)
+        ax.set_xlim((0,5))
 
         if show:
             plt.legend()
