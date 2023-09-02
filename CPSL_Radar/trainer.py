@@ -126,7 +126,7 @@ class Trainer:
         
         #for non-random train and val
         self.train_inputs,self.test_inputs,self.train_outputs,self.test_outputs = \
-            train_test_split(self.input_paths,self.output_paths,test_size=self.test_split,shuffle=False)
+            train_test_split(self.input_paths,self.output_paths,test_size=self.test_split,shuffle=True)
         
         print("[INFO] saving test image paths...")
         f = open(os.path.join(self.working_dir,"test_paths.txt"),"w")

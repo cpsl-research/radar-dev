@@ -8,6 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib
 from tqdm import tqdm
+import cv2
 
 class LidarDataProcessor:
 
@@ -225,6 +226,9 @@ class LidarDataProcessor:
         #generate the spherical points as a grid
         grid = self.points_spherical_to_grid(points_spherical)
 
+        #apply binary connected component analysis
+        grid = self.apply_binary_connected_component_analysis_to_grid(grid)
+        
         #save grid to a file
         self._save_grid_to_file(grid_spherical=grid,sample_idx=sample_idx)
 
@@ -325,7 +329,7 @@ class LidarDataProcessor:
         ground_plane = np.min(points[:,2])
 
         valid_points = points[:,2] > -0.2 #filter out ground
-        valid_points = valid_points & (points[:,2] < 0.3) #higher elevation points
+        valid_points = valid_points & (points[:,2] < 0.1) #higher elevation points
 
 
         points = points[valid_points,:]
@@ -474,6 +478,27 @@ class LidarDataProcessor:
         el_vals = np.ones_like(rng_vals) * np.pi/2 #hard coded for now
 
         return np.column_stack((rng_vals,az_vals,el_vals))
+    
+#filter a generated grid to remove "noisy" areas/areas with low area
+    def apply_binary_connected_component_analysis_to_grid(self,grid:np.ndarray):
+        
+        # Perform connected component analysis
+        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(grid.astype(np.uint8))
+
+        # Filter out isolated pixels
+        min_size = 4 #min area in pixels
+
+        #min height or width
+        min_height = 3
+        min_width = 3
+        filtered_grid = np.zeros_like(grid)
+        for i in range(1, num_labels):
+            if ((min_size <= stats[i, cv2.CC_STAT_AREA]) and
+            ((min_height <= stats[i, cv2.CC_STAT_HEIGHT]) or 
+             min_width <= stats[i,cv2.CC_STAT_WIDTH])):
+                filtered_grid[labels == i] = 1
+        
+        return filtered_grid
 
 #saving to a file
     def _save_grid_to_file(self,grid_spherical:np.ndarray,sample_idx:int):

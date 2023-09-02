@@ -24,68 +24,46 @@ def main():
         cuda_device="cuda:0"
     )
 
-    viewer.save_video("trained.mp4",fps=10)
+    viewer.save_video("drone_test.mp4",fps=10)
 
 
 
 def init_dataset_generator(generate_dataset = False):
-    #Wilkenson dataset folders
-    wilkenson_folder = "/data/david/CPSL_Ground/wilkenson_datasets/"
+    #initialize the dataset generator
+    drone_folder = "/data/david/CPSL_Drone/"
+    test_scenarios = ["drone_test"]
 
-    # scenario_folders = sorted(os.listdir(dataset_folder))
-    train_scenarios = ["scene_{}".format(i+1) for i in range(10)]
-
-    test_scenarios = ["scene_{}_test".format(i+1) for i in range(10)]
-
-    train_scenarios = [os.path.join(wilkenson_folder,scenario_folder) for
-                    scenario_folder in train_scenarios]
-    test_scenarios = [os.path.join(wilkenson_folder,scenario_folder) for
+    test_scenarios = [os.path.join(drone_folder,scenario_folder) for
                     scenario_folder in test_scenarios]
-
-    #box_dataset_folders
-    box_folder = "/data/david/CPSL_Ground/box_datasets/"
-
-    box_scenarios = ["scene_{}".format(i+1) for i in range(5)]
-
-    train_scenarios.extend(
-        [os.path.join(box_folder,scenario_folder) for
-        scenario_folder in box_scenarios[0:-1]]
-    )
-
-    box_test_scenarios = [
-        os.path.join(box_folder,scenario_folder) for 
-        scenario_folder in box_scenarios[-1]
-    ]
 
     scenarios_to_use = test_scenarios
 
     #location that we wish to save the dataset to
-    generated_dataset_path = "/data/david/CPSL_Ground/test/"
+    generated_dataset_path = "/data/david/CPSL_Drone/test/"
 
     #specifying the names for the files
     generated_file_name = "frame"
     radar_data_folder = "radar"
-    lidar_data_folder = "lidar"
 
     #basic dataset settings
     num_chirps_to_save = 40
     num_previous_frames = 0
 
     #initialize the DatasetGenerator
-    dataset_generator = DatasetGenerator()
+    dataset_generator = DatasetGenerator(radar_data_only=True)
 
     dataset_generator.config_generated_dataset_paths(
         generated_dataset_path=generated_dataset_path,
         generated_file_name=generated_file_name,
         generated_radar_data_folder=radar_data_folder,
-        generated_lidar_data_folder=lidar_data_folder,
+        generated_lidar_data_folder=None,
         clear_existing_data=False
     )
 
     dataset_generator.config_radar_lidar_data_paths(
         scenario_folder= scenarios_to_use[0],
         radar_data_folder=radar_data_folder,
-        lidar_data_folder=lidar_data_folder
+        lidar_data_folder=None
     )
 
     #configure the radar data processor
@@ -120,7 +98,7 @@ def init_dataset_generator(generate_dataset = False):
         dataset_generator.generate_dataset_from_multiple_scenarios(
             scenario_folders = scenarios_to_use,
             radar_data_folder= radar_data_folder,
-            lidar_data_folder=lidar_data_folder
+            lidar_data_folder=None
         )
     
     return dataset_generator

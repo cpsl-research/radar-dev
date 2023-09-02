@@ -15,9 +15,9 @@ def main():
     #initialize the unet
     unet_model = unet(
         encoder_input_channels= 40,
-        encoder_out_channels= (128,256,512),
-        decoder_input_channels= (1024,512,256),
-        decoder_out_channels= 128,
+        encoder_out_channels= (256,512,1024),
+        decoder_input_channels= (2048,1024,512),
+        decoder_out_channels= 256,
         output_channels= 1,
         retain_dimmension= False,
         input_dimmensions= (64,48)
@@ -38,7 +38,7 @@ def main():
         test_split= 0.15,
         working_dir="working_dir",
         transforms_to_apply=unet_transforms,
-        batch_size= 512,
+        batch_size= 256,
         epochs=10,
         learning_rate=0.001,
         loss_fn= BCE_DICE_Loss(dice_weight=0.1,dice_smooth=1),

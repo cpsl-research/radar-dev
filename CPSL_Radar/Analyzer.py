@@ -52,6 +52,9 @@ class Analyzer:
 
         #tracking failed predictions (predictions where nothing was predicted)
         self.num_failed_predictions = 0
+
+        #see if only radar data was generated
+        self.radar_data_only = self.dataset_generator.radar_data_only
         pass
 
     
@@ -102,56 +105,64 @@ class Analyzer:
     
     def plot_chamfer_hausdorf_cdfs(self):
         
-        #compute chamfer and hausdorf distances
-        chamfer_distances,hausdorf_distances = self.compute_all_chamfer_hausdorff_distances()
+        if not self.radar_data_only:
+            #compute chamfer and hausdorf distances
+            chamfer_distances,hausdorf_distances = self.compute_all_chamfer_hausdorff_distances()
 
-        #create the figure
-        fig = plt.figure(figsize=(3,3))
-        ax = fig.add_subplot()
+            #create the figure
+            fig = plt.figure(figsize=(3,3))
+            ax = fig.add_subplot()
 
-        #add chamfer to plot
-        self._plot_cdf(
-            distances=chamfer_distances,
-            label="Chamfer Distance",
-            show=False,
-            percentile=1.0,
-            ax = ax
-        )
+            #add chamfer to plot
+            self._plot_cdf(
+                distances=chamfer_distances,
+                label="Chamfer Distance",
+                show=False,
+                percentile=1.0,
+                ax = ax
+            )
 
-        #add hausdorf distance
-        self._plot_cdf(
-            distances=hausdorf_distances,
-            label="Hausdorf Distance",
-            show=False,
-            percentile=0.95,
-            ax = ax
-        )
+            #add hausdorf distance
+            self._plot_cdf(
+                distances=hausdorf_distances,
+                label="Hausdorf Distance",
+                show=False,
+                percentile=0.95,
+                ax = ax
+            )
 
-        plt.legend()
-        plt.show()
+            plt.grid()
+            plt.legend()
+            plt.show()
+        
+        else:
+            print("Analyzer.plot_chamfer_hausdorf_cdfs: attempted to plot cdfs, but only radar_data_only flag was true (from dataset generator)")
     
     def compute_all_chamfer_hausdorff_distances(self):
 
-        #initialize arrays to store the distributions in
-        chamfer_distances = np.zeros((self.dataset_generator.num_samples))
-        hausdorff_distances = np.zeros((self.dataset_generator.num_samples))
+        if not self.radar_data_only:
+            #initialize arrays to store the distributions in
+            chamfer_distances = np.zeros((self.dataset_generator.num_samples))
+            hausdorff_distances = np.zeros((self.dataset_generator.num_samples))
 
-        #reset failed sample tracking
-        self.num_failed_predictions = 0
+            #reset failed sample tracking
+            self.num_failed_predictions = 0
 
-        #compute the distances for each of the arrays
-        print("Analyzer.compute_all_chamfer_hausdorff_distances: Computing chamfer and hausdorff distances")
-        for i in tqdm(range(self.dataset_generator.num_samples)):
-            chamfer_distances[i],hausdorff_distances[i] = self.compute_chamfer_hausdorff_distances(sample_idx=i,print_result=False)
-        
-        print("Analyzer.compute_all_chamfer_hausdorff_distances: number failed predictoins {} of {} ({}%)".format(
-            self.num_failed_predictions,
-            self.dataset_generator.num_samples,
-            float(self.num_failed_predictions) / float(self.dataset_generator.num_samples)
-        ))
-        return chamfer_distances,hausdorff_distances
+            #compute the distances for each of the arrays
+            print("Analyzer.compute_all_chamfer_hausdorff_distances: Computing chamfer and hausdorff distances")
+            for i in tqdm(range(self.dataset_generator.num_samples)):
+                chamfer_distances[i],hausdorff_distances[i] = self._compute_chamfer_hausdorff_distances(sample_idx=i,print_result=False)
+            
+            print("Analyzer.compute_all_chamfer_hausdorff_distances: number failed predictoins {} of {} ({}%)".format(
+                self.num_failed_predictions,
+                self.dataset_generator.num_samples,
+                float(self.num_failed_predictions) / float(self.dataset_generator.num_samples)
+            ))
+            return chamfer_distances,hausdorff_distances
+        else:
+            print("analyzer.compute_all_chamfer_hausdorff_distances: attempted to plot cdfs, but radar_data_only flag was true (from dataset generator)")
     
-    def compute_chamfer_hausdorff_distances(self,sample_idx, print_result = False):
+    def _compute_chamfer_hausdorff_distances(self,sample_idx, print_result = False):
         """Returns the chamfer and hausdorff distances between the points in the ground truth point cloud and predicted point cloud
 
         Args:
@@ -261,6 +272,7 @@ class Analyzer:
         ax.set_xlim((0,5))
 
         if show:
+            plt.grid()
             plt.legend()
             plt.show()
     
@@ -268,8 +280,12 @@ class Analyzer:
     def view_result(self,sample_idx, axs = [], show = True):
 
         if len(axs)==0:
-            fig,axs = plt.subplots(nrows=2,ncols=3,figsize=(15,10))
-            fig.subplots_adjust(wspace=0.2,hspace=0.4)
+            if self.radar_data_only:
+                fig,axs = plt.subplots(nrows=2,ncols=2,figsize=(10,10))
+                fig.subplots_adjust(wspace=0.2,hspace=0.4)
+            else:
+                fig,axs = plt.subplots(nrows=2,ncols=3,figsize=(15,10))
+                fig.subplots_adjust(wspace=0.2,hspace=0.4)
         
         #get the input/output data
         original_input = self.dataset_generator.radar_data_processor.load_range_az_spherical_from_file(sample_idx)
@@ -283,18 +299,26 @@ class Analyzer:
         )
 
         #fix the plot titles
-        axs[0,1].set_title('Ground Truth\nLidar Point Cloud (Cartesian)',fontsize=Analyzer.font_size_title)
-        axs[1,1].set_title('Ground Truth\nLidar Point CLoud (Spherical)',fontsize=Analyzer.font_size_title)
+        if not self.radar_data_only:
+            axs[0,1].set_title('Ground Truth\nLidar Point Cloud (Cartesian)',fontsize=Analyzer.font_size_title)
+            axs[1,1].set_title('Ground Truth\nLidar Point CLoud (Spherical)',fontsize=Analyzer.font_size_title)
         
         #get the prediction
         prediction = self._make_prediction(original_input)
         
         #plot the comparison
-        self._plot_prediction(
-            pred_lidar=prediction,
-            ax_cartesian=axs[0,2],
-            ax_spherical=axs[1,2]
-        )
+        if self.radar_data_only:
+            self._plot_prediction(
+                pred_lidar=prediction,
+                ax_cartesian=axs[0,1],
+                ax_spherical=axs[1,1]
+            )
+        else:
+            self._plot_prediction(
+                pred_lidar=prediction,
+                ax_cartesian=axs[0,2],
+                ax_spherical=axs[1,2]
+            )
 
         if show:
             plt.show()
@@ -317,8 +341,12 @@ class Analyzer:
     def _save_all_result_frames_to_temp(self):
 
         #initialize the figure
-        fig,axs = plt.subplots(nrows=2,ncols=3,figsize=(15,10))
-        fig.subplots_adjust(wspace=0.2,hspace=0.4)
+        if self.radar_data_only:
+            fig,axs = plt.subplots(nrows=2,ncols=3,figsize=(15,10))
+            fig.subplots_adjust(wspace=0.2,hspace=0.4)
+        else:
+            fig,axs = plt.subplots(nrows=2,ncols=3,figsize=(15,10))
+            fig.subplots_adjust(wspace=0.2,hspace=0.4)
 
         print("Analyzer._save_all_result_frames_to_temp: saving result frames to {}".format(self.temp_directory_path))
 
