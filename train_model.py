@@ -14,7 +14,7 @@ import sys
 def main():
     #initialize the unet
     unet_model = unet(
-        encoder_input_channels= 40,
+        encoder_input_channels= 3,
         encoder_out_channels= (128,256,512),
         decoder_input_channels= (1024,512,256),
         decoder_out_channels= 128,

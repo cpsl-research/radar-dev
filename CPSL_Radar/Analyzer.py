@@ -268,7 +268,7 @@ class Analyzer:
     def view_result(self,sample_idx, axs = [], show = True):
 
         if len(axs)==0:
-            fig,axs = plt.subplots(nrows=2,ncols=3,figsize=(15,10))
+            fig,axs = plt.subplots(nrows=2,ncols=2,figsize=(15,10))
             fig.subplots_adjust(wspace=0.2,hspace=0.4)
         
         #get the input/output data
