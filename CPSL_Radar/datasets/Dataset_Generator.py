@@ -317,12 +317,13 @@ class DatasetGenerator:
             self.generate_dataset(clear_contents= clear_contents)
 
 #plotting
+# use this function, it can show images, I am trying to alao save jpgs when call here
 
     def plot_radar_lidar_data(
             self,
             sample_idx,
             axs = [],
-            
+
             show = True
     ):
         """Plot the radar and lidar data in cartesian and spherical coordinates
@@ -343,6 +344,7 @@ class DatasetGenerator:
             ax_cartesian=axs[0,0],
             ax_spherical=axs[1,0],
             show=False
+            # show=True
         )
 
         self.lidar_data_processor.plot_pointcloud(
@@ -350,9 +352,18 @@ class DatasetGenerator:
             ax_cartesian=axs[0,1],
             ax_spherical=axs[1,1],
             show=False
+            # show=True
         )
 
         if show:
+            # plt.savefig("xiao_test.jpg")
+            # print("save images 3")
+            # plt.show()
+            jpg_file_path = os.path.join(self.generated_dataset_path,"{}_{}.jpg".
+                                         format(self.generated_file_name, sample_idx))
+            
+            plt.savefig(jpg_file_path)
+            print("save images at ", jpg_file_path)
             plt.show()
         
     def plot_saved_radar_lidar_data(
