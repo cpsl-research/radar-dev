@@ -19,6 +19,7 @@ __pycache__
 *.tiff
 *.tif
 *.jpeg
+*.jpg
 *.pth
 *.npy
 *.gif
