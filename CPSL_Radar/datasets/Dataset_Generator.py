@@ -238,7 +238,8 @@ class DatasetGenerator:
             start_freq_Hz,
             idle_time_us,
             ramp_end_time_us,
-            num_previous_frames
+            num_previous_frames = 0,
+            use_average_range_az = False
     ):
 
         #configure the radar data processor
@@ -257,7 +258,8 @@ class DatasetGenerator:
             start_freq_Hz,
             idle_time_us,
             ramp_end_time_us,
-            num_previous_frames
+            num_previous_frames,
+            use_average_range_az
         )
 
         return

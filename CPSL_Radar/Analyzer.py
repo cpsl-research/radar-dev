@@ -11,6 +11,9 @@ from tqdm import tqdm
 import io
 import imageio
 from scipy.spatial.distance import cdist
+import pandas as pd
+from IPython.display import display
+
 
 #dataset generator
 from CPSL_Radar.datasets.Dataset_Generator import DatasetGenerator
@@ -103,14 +106,11 @@ class Analyzer:
 
 ### Performing Quantative Results
     
-    def plot_chamfer_hausdorf_cdfs(self):
+    def plot_distance_metrics_cdfs(self, chamfer_distances, hausdorf_distances,chamfer_distances_radarHD = [], modified_hausdorf_distances_radarHD=[]):
         
         if not self.radar_data_only:
-            #compute chamfer and hausdorf distances
-            chamfer_distances,hausdorf_distances = self.compute_all_chamfer_hausdorff_distances()
-
             #create the figure
-            fig = plt.figure(figsize=(3,3))
+            fig = plt.figure(figsize=(5,5))
             ax = fig.add_subplot()
 
             #add chamfer to plot
@@ -127,9 +127,27 @@ class Analyzer:
                 distances=hausdorf_distances,
                 label="Hausdorf Distance",
                 show=False,
-                percentile=0.95,
+                percentile=1.0,
                 ax = ax
             )
+
+            if len(chamfer_distances_radarHD) > 0:
+                self._plot_cdf(
+                    distances=chamfer_distances_radarHD,
+                    label="Chamfer Distance (RadarHD)",
+                    show=False,
+                    percentile=1.0,
+                    ax = ax
+                )
+            
+            if len(modified_hausdorf_distances_radarHD) > 0:
+                self._plot_cdf(
+                    distances=modified_hausdorf_distances_radarHD,
+                    label="Modified Hausdorff Distance (RadarHD)",
+                    show=False,
+                    percentile=1.0,
+                    ax = ax
+                )
 
             plt.grid()
             plt.legend()
@@ -138,31 +156,92 @@ class Analyzer:
         else:
             print("Analyzer.plot_chamfer_hausdorf_cdfs: attempted to plot cdfs, but only radar_data_only flag was true (from dataset generator)")
     
-    def compute_all_chamfer_hausdorff_distances(self):
+    def show_summary_statistics(self,
+                                chamfer_distances:np.ndarray,
+                                hausdorff_distances:np.ndarray,
+                                chamfer_distances_radarHD:np.ndarray=[],
+                                modified_hausdorff_distances:np.ndarray=[]):
+        """Display a set of summary statistics in a table
+
+        Args:
+            chamfer_distances (np.ndarray): _description_
+            hausdorff_distances (np.ndarray): _description_
+            chamfer_distances_radarHD (np.ndarray, optional): _description_. Defaults to None.
+            modified_hausdorff_distances (np.ndarray, optional): _description_. Defaults to None.
+        """
+        #compute stats for hausdorff
+        hausdorff_mean = np.mean(hausdorff_distances)
+        hausdorff_median = np.median(hausdorff_distances)
+        hausdorff_tail_90_percent = self._get_percentile(hausdorff_distances,0.90)
+        
+        #compute stats for chamfer
+        chamfer_mean = np.mean(chamfer_distances)
+        chamfer_median = np.median(chamfer_distances)
+        chamfer_tail_90_percent = self._get_percentile(chamfer_distances,0.90)
+        
+        #generate and display table
+        dict = {
+            'Metric': ["Mean","Median","90th percentile"],
+            'Hausdorff':[hausdorff_mean,hausdorff_median,hausdorff_tail_90_percent],
+            'Chamfer':[chamfer_mean,chamfer_median,chamfer_tail_90_percent]
+        }
+
+        #show radarHD statics if available
+        if len(chamfer_distances_radarHD) > 0:
+            mean = np.mean(chamfer_distances_radarHD)
+            median = np.median(chamfer_distances_radarHD)
+            tail_90_percent = self._get_percentile(chamfer_distances_radarHD, 0.90)
+            dict["Chamfer (RadarHD)"] = [mean, median,tail_90_percent]
+        
+        if len(modified_hausdorff_distances) > 0:
+            mean = np.mean(modified_hausdorff_distances)
+            median = np.median(modified_hausdorff_distances)
+            tail_90_percent = self._get_percentile(modified_hausdorff_distances, 0.90)
+            dict["Modified Hausdorff (RadarHD)"] = [mean, median,tail_90_percent]
+
+        df = pd.DataFrame(dict)
+        display(df)
+
+    def _get_percentile(self,distances:np.ndarray, percentile:float):
+
+        sorted_data = np.sort(distances)
+        p = 1. * np.arange(len(sorted_data)) / float(len(sorted_data) - 1)
+
+        #compute the index of the percentile
+        idx = (np.abs(p - percentile)).argmin()
+
+        return sorted_data[idx]
+    
+    def compute_all_distance_metrics(self):
 
         if not self.radar_data_only:
-            #initialize arrays to store the distributions in
+            #initialize arrays to store the distributions in (standard metrics)
             chamfer_distances = np.zeros((self.dataset_generator.num_samples))
             hausdorff_distances = np.zeros((self.dataset_generator.num_samples))
+
+            #initialize arrays to store the distributions in (RadarHD metrics)
+            chamfer_distances_radarHD = np.zeros((self.dataset_generator.num_samples))
+            modified_hausdorff_distances_radarHD = np.zeros((self.dataset_generator.num_samples))
 
             #reset failed sample tracking
             self.num_failed_predictions = 0
 
             #compute the distances for each of the arrays
-            print("Analyzer.compute_all_chamfer_hausdorff_distances: Computing chamfer and hausdorff distances")
+            print("Analyzer.compute_all_distance_metrics: Computing distance metrics")
             for i in tqdm(range(self.dataset_generator.num_samples)):
-                chamfer_distances[i],hausdorff_distances[i] = self._compute_chamfer_hausdorff_distances(sample_idx=i,print_result=False)
+                chamfer_distances[i],hausdorff_distances[i],chamfer_distances_radarHD[i],modified_hausdorff_distances_radarHD[i] = \
+                    self._compute_distance_metrics(sample_idx=i,print_result=False)
             
-            print("Analyzer.compute_all_chamfer_hausdorff_distances: number failed predictoins {} of {} ({}%)".format(
+            print("Analyzer.compute_all_distance_metrics: number failed predictoins {} of {} ({}%)".format(
                 self.num_failed_predictions,
                 self.dataset_generator.num_samples,
                 float(self.num_failed_predictions) / float(self.dataset_generator.num_samples)
             ))
-            return chamfer_distances,hausdorff_distances
+            return chamfer_distances,hausdorff_distances, chamfer_distances_radarHD, modified_hausdorff_distances_radarHD
         else:
-            print("analyzer.compute_all_chamfer_hausdorff_distances: attempted to plot cdfs, but radar_data_only flag was true (from dataset generator)")
+            print("analyzer.compute_all_distance_metrics: attempted to compute distance metrics, but radar_data_only flag was true (from dataset generator)")
     
-    def _compute_chamfer_hausdorff_distances(self,sample_idx, print_result = False):
+    def _compute_distance_metrics(self,sample_idx, print_result = False):
         """Returns the chamfer and hausdorff distances between the points in the ground truth point cloud and predicted point cloud
 
         Args:
@@ -170,22 +249,27 @@ class Analyzer:
             print_result (bool, optional): On True, prints the distances. Defaults to False.
 
         Returns:
-            double,double: Chamfer distance (m), Hausdorff distance (m)
+            double,double,double,double: Chamfer distance (m), Hausdorff distance (m), Chamfer (radarHD) distance (m), Modified hausdorff distance (radarHD) distance
         """
 
         try: 
             distances = self._compute_euclidian_distances(sample_idx)
 
+            #compute actual metrics
             chamfer = self._compute_chamfer(distances)
             hausdorff = self._compute_hausdorff(distances)
+
+            #compute RadarHD Metrics
+            chamfer_radarHD = self._compute_chamfer_radarHD(distances)
+            modified_hausdorff_radarHD = self._compute_modified_hausdorff_radarHD(distances)
 
             if print_result:
                 print("Chamfer: {}, Hausdorff: {}".format(chamfer,hausdorff))
 
-            return chamfer,hausdorff
+            return chamfer,hausdorff, chamfer_radarHD, modified_hausdorff_radarHD
         except ValueError:
             self.num_failed_predictions += 1
-            return 0,0
+            return 0,0,0,0
     
     def _compute_euclidian_distances(self, sample_idx):
         """Compute the euclidian distance between all of the points in the ground truth point cloud and the predicted point cloud
@@ -225,6 +309,21 @@ class Analyzer:
 
         return  np.max([np.max(ground_truth_mins),np.max(prediction_mins)])
     
+    def _compute_modified_hausdorff_radarHD(self,distances):
+        """Compute the Hausdorff distance between the predicted point cloud and the ground truth point cloud
+            Note: formula from: https://github.com/akarsh-prabhakara/RadarHD/blob/main/eval/pc_distance.m
+        Args:
+            distances (ndarray): an N x M ndarray with the euclidian distance between the N points in the ground truth point cloud and M points in the predicted point cloud
+
+        Returns:
+            double: hausdorff distance from RadarHD
+        """
+
+        ground_truth_mins = np.min(distances,axis=1)
+        prediction_mins = np.min(distances,axis=0)
+
+        return np.max([np.median(ground_truth_mins),np.median(prediction_mins)])
+    
     def _compute_chamfer(self,distances):
         """Compute the Chamfer distance between the predicted point cloud and the ground truth point cloud
             Note: formula from: https://github.com/DavidWatkins/chamfer_distance
@@ -243,6 +342,22 @@ class Analyzer:
         prediction_mins = np.square(prediction_mins)
 
         return np.mean(ground_truth_mins) + np.mean(prediction_mins)
+    
+    def _compute_chamfer_radarHD(self,distances):
+        """Compute the Chamfer distance between the predicted point cloud and the ground truth point cloud as used in RadarHD
+            Note: formula from: https://github.com/akarsh-prabhakara/RadarHD/blob/main/eval/pc_distance.m
+        Args:
+            distances (ndarray): an N x M ndarray with the euclidian distance between the N points in the ground truth point cloud and M points in the predicted point cloud
+
+        Returns:
+            double: Chamfer distance from RadarHD
+        """
+
+        ground_truth_mins = np.min(distances,axis=1)
+        prediction_mins = np.min(distances,axis=0)
+
+        return (0.5 * np.mean(ground_truth_mins)) + (0.5 * np.mean(prediction_mins))
+
 
     def _plot_cdf(
             self,

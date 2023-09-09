@@ -7,33 +7,45 @@ import matplotlib.pyplot as plt
 #import CPSL Radar Dataset Generator Code
 from CPSL_Radar.datasets.Dataset_Generator import DatasetGenerator
 
-#Wilkenson dataset folders
-wilkenson_folder = "/data/david/CPSL_Ground/wilkenson_datasets/"
+#campus dataset folders
+campus_folder = "/data/david/CPSL_Ground/campus_datasets/"
 
-# scenario_folders = sorted(os.listdir(dataset_folder))
-train_scenarios = ["scene_{}".format(i+1) for i in range(10)]
+campus_scenarios = ["scene_{}".format(i+1) for i in range(7)]
+campus_test_scenarios = ["scene_{}_test".format(i+1) for i in range(7)]
+campus_test_scenarios_spin = ["scene_{}_test_spin".format(i) for i in range(3,5)]
 
-test_scenarios = ["scene_{}_test".format(i+1) for i in range(10)]
+train_scenarios = [os.path.join(campus_folder,scenario_folder) for 
+                  scenario_folder in campus_scenarios]
 
-train_scenarios = [os.path.join(wilkenson_folder,scenario_folder) for
-                   scenario_folder in train_scenarios]
-test_scenarios = [os.path.join(wilkenson_folder,scenario_folder) for
-                   scenario_folder in test_scenarios]
+test_scenarios = [os.path.join(campus_folder,scenario_folder) for 
+                  scenario_folder in campus_test_scenarios]
+
+test_scenarios_spin = [os.path.join(campus_folder,scenario_folder) for 
+                  scenario_folder in campus_test_scenarios_spin]
+# wilkenson dataset
+# wilkenson_folder = "/data/david/CPSL_Ground/wilkenson_datasets"
+# wilkenson_scenarios = ["scene_{}".format(i+1) for i in range(10)]
+
+# wilkenson_test_scenarios = ["scene_{}_test".format(i+1) for i in range(10)]
+
+# train_scenarios.extend([os.path.join(wilkenson_folder,scenario_folder) for
+#                    scenario_folder in wilkenson_scenarios])
+# test_scenarios.extend([os.path.join(wilkenson_folder,scenario_folder) for
+#                    scenario_folder in wilkenson_test_scenarios])
 
 #box_dataset_folders
-box_folder = "/data/david/CPSL_Ground/box_datasets/"
+# box_folder = "/data/david/CPSL_Ground/box_datasets/"
 
-box_scenarios = ["scene_{}".format(i+1) for i in range(5)]
+# box_scenarios = ["scene_{}".format(i+1) for i in range(5)]
 
-train_scenarios.extend(
-    [os.path.join(box_folder,scenario_folder) for
-     scenario_folder in box_scenarios[0:-1]]
-)
+# train_scenarios.extend(
+#     [os.path.join(box_folder,scenario_folder) for
+#      scenario_folder in box_scenarios[0:-1]]
+# )
 
-box_test_scenarios = [
-    os.path.join(box_folder,scenario_folder) for 
-    scenario_folder in box_scenarios[-1]
-]
+# test_scenarios.extend([
+#     os.path.join(box_folder,scenario_folder) for 
+#     scenario_folder in box_scenarios[-1]])
 
 scenarios_to_use = test_scenarios
 
@@ -48,6 +60,7 @@ lidar_data_folder = "lidar"
 #basic dataset settings
 num_chirps_to_save = 40
 num_previous_frames = 0
+use_average_range_az = False
 
 #initialize the DatasetGenerator
 dataset_generator = DatasetGenerator()
@@ -71,9 +84,10 @@ dataset_generator.config_radar_data_processor(
     max_range_bin=64,
     num_chirps_to_save=num_chirps_to_save,
     num_previous_frames=num_previous_frames,
+    use_average_range_az= use_average_range_az,
     radar_fov= [-0.87, 0.87], #+/- 50 degrees
     num_angle_bins=64,
-    power_range_dB=[60,105],
+    power_range_dB=[60,105], #was [60,105]
     chirps_per_frame= 64,
     rx_channels = 4,
     tx_channels = 1,

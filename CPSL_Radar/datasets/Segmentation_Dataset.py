@@ -5,17 +5,19 @@ import numpy as np
 
 class SegmentationDataset(Dataset):
 
-    def __init__(self,input_paths:list,mask_paths:list,transforms:list = None):
+    def __init__(self,input_paths:list,mask_paths:list,input_transforms:list = None, output_transforms:list = None):
         """initialize the segmentation dataset
 
         Args:
             input_paths (list): list of paths (strings) to each input file
             mask_paths (list): list of paths (strings) to each output file (mask)
-            transforms (list, optional): A list of transforms to be applied to each item when __getitem__ is called. Will be fed into a compose() method Defaults to None.
+            input_transforms (list, optional): A list of transforms to be applied to each input item when __getitem__ is called. Will be fed into a compose() method Defaults to None.
+            output_transforms (list, optional):  A list of transforms to be applied to each output item when __getitem__ is called. Will be fed into a compose() method Defaults to None.
         """
         self.input_paths = input_paths
         self.mask_paths = mask_paths
-        self.transforms = transforms
+        self.input_transforms = input_transforms
+        self.output_transforms = output_transforms
 
         self.num_samples = len(input_paths)
 
@@ -47,9 +49,11 @@ class SegmentationDataset(Dataset):
         mask = np.load(mask_path).astype(np.float32)
 
         #apply transforms as required
-        if self.transforms:
-            transforms = Compose(self.transforms)
+        if self.input_transforms:
+            transforms = Compose(self.input_transforms)
             image = transforms(image)
+        if self.output_transforms:
+            transforms = Compose(self.output_transforms)
             mask = transforms(mask)
             #TODO: did this to ensure that random transforms applied to both image and mask
 

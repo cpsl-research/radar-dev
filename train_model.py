@@ -5,6 +5,7 @@ from CPSL_Radar.trainer import Trainer
 from CPSL_Radar.losses.BCE_dice_loss import BCE_DICE_Loss
 from CPSL_Radar.losses.dice_loss import DiceLoss
 from CPSL_Radar.losses.focal_loss import FocalLoss
+from CPSL_Radar.transforms.random_radar_noise import RandomRadarNoise
 
 #other torch functions
 from torch.nn import BCEWithLogitsLoss
@@ -15,16 +16,22 @@ def main():
     #initialize the unet
     unet_model = unet(
         encoder_input_channels= 40,
-        encoder_out_channels= (256,512,1024),
-        decoder_input_channels= (2048,1024,512),
-        decoder_out_channels= 256,
+        encoder_out_channels= (128,256,512),
+        decoder_input_channels= (1024,512,256),
+        decoder_out_channels= 128,
         output_channels= 1,
         retain_dimmension= False,
         input_dimmensions= (64,48)
     )
 
     #initialize the transforms to use
-    unet_transforms = [
+    input_transforms = [
+        RandomRadarNoise(noise_level=0.0),
+        transforms.ToTensor(),
+        transforms.Resize((64,48))
+    ]
+
+    output_transforms = [
         transforms.ToTensor(),
         transforms.Resize((64,48))
     ]
@@ -37,7 +44,9 @@ def main():
         output_directory="lidar",
         test_split= 0.15,
         working_dir="working_dir",
-        transforms_to_apply=unet_transforms,
+        save_name="averaging",
+        input_transforms=input_transforms,
+        output_transforms=output_transforms,
         batch_size= 256,
         epochs=10,
         learning_rate=0.001,

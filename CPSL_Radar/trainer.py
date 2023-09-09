@@ -22,7 +22,9 @@ class Trainer:
                  output_directory,
                  test_split = 0.15,
                  working_dir = "working_dir",
-                 transforms_to_apply:list = None,
+                 save_name = "trained",
+                 input_transforms:list = None,
+                 output_transforms:list = None,
                  batch_size = 64,
                  epochs = 40,
                  learning_rate = 0.001,
@@ -57,12 +59,18 @@ class Trainer:
 
         #save the path to the working directory
         self.working_dir = working_dir
+        self.save_name = save_name
 
         #define transforms
-        if not transforms_to_apply:
-            self.transforms = [transforms.Resize((128,128)),transforms.ToTensor()]
+        if not input_transforms:
+            self.input_transforms = [transforms.Resize((128,128)),transforms.ToTensor()]
         else:
-            self.transforms = transforms_to_apply
+            self.input_transforms = input_transforms
+        
+        if not output_transforms:
+             self.output_transforms = [transforms.Resize((128,128)),transforms.ToTensor()]
+        else:
+            self.output_transforms = output_transforms
 
         #initialize datasets
         self.train_dataset:SegmentationDataset = None
@@ -138,13 +146,15 @@ class Trainer:
         self.train_dataset = SegmentationDataset(
             input_paths= self.train_inputs,
             mask_paths= self.train_outputs,
-            transforms= self.transforms
+            input_transforms= self.input_transforms,
+            output_transforms= self.output_transforms
         )
 
         self.test_dataset = SegmentationDataset(
             input_paths= self.test_inputs,
             mask_paths= self.test_outputs,
-            transforms = self.transforms
+            input_transforms = self.input_transforms,
+            output_transforms=self.output_transforms
         )
 
         print("ModelTrainer._init_test_train_dataset: found {} samples in training dataset".format(len(self.train_dataset)))
@@ -236,7 +246,8 @@ class Trainer:
         self.plot_results()
 
         #save the model
-        torch.save(self.model, os.path.join(self.working_dir,"trained.pth"))
+        file_name = "{}.pth".format(self.save_name)
+        torch.save(self.model, os.path.join(self.working_dir,file_name))
 
 
     def plot_results(self):
@@ -249,4 +260,5 @@ class Trainer:
         plt.xlabel("Epoch #")
         plt.ylabel("Loss")
         plt.legend(loc="lower left")
-        plt.savefig(os.path.join(self.working_dir,"training_plot.png"))
+        file_name = "{}.png".format(self.save_name)
+        plt.savefig(os.path.join(self.working_dir,file_name))
