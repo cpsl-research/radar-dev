@@ -67,6 +67,9 @@ class RadarDataProcessor:
 
         #for taking into account previous frames in the radar data
         self.num_previous_frames = 0
+
+        #to average all of the data together
+        self.use_average_range_az = False
         return
 
     def configure(self,
@@ -84,7 +87,8 @@ class RadarDataProcessor:
                     start_freq_Hz,
                     idle_time_us,
                     ramp_end_time_us,
-                    num_previous_frames=0):
+                    num_previous_frames=0,
+                    use_average_range_az = False):
         
         #load the radar parameters
         self.max_range_bin = max_range_bin
@@ -112,6 +116,9 @@ class RadarDataProcessor:
 
         #take previous frames instead of previous chirps into account
         self.num_previous_frames = num_previous_frames
+
+        #for whether or not to average everything
+        self.use_average_range_az = use_average_range_az
 
         return
 
@@ -238,7 +245,10 @@ class RadarDataProcessor:
         range_azimuth_response = self.load_range_az_spherical_from_file(sample_idx=sample_idx)
 
         #account for the potential of multiple frames and chirps being plotted
-        idx_to_plot = self.num_previous_frames * self.num_chirps_to_save
+        if not self.use_average_range_az:
+            idx_to_plot = self.num_previous_frames * self.num_chirps_to_save
+        else:
+            idx_to_plot = self.num_previous_frames
         
         #plot the response in cartesian for the first chirp
         self._plot_range_azimuth_heatmap_cartesian(range_azimuth_response[:,:,idx_to_plot],
@@ -271,23 +281,42 @@ class RadarDataProcessor:
             self._save_range_az_spherical_to_file(range_azimuth_response,sample_idx=sample_idx)
 
         else:
-            range_azimuth_response = np.zeros((self.max_range_bin,
-                                               np.sum(self.angle_bins_to_keep),
-                                               self.num_chirps_to_save * (self.num_previous_frames + 1)))
 
-            for i in range(self.num_previous_frames + 1):
-                #get the raw ADC data cube
-                adc_data_cube = self._get_raw_ADC_data_cube(
-                    sample_idx + i)
+            if self.use_average_range_az:
+                range_azimuth_response = np.zeros((self.max_range_bin,
+                                                np.sum(self.angle_bins_to_keep),
+                                                (self.num_previous_frames + 1)))
 
-                #compute the frame range-azimuth response
-                start_idx = i * self.num_chirps_to_save
-                stop_idx = start_idx + self.num_chirps_to_save
-                range_azimuth_response[:,:,start_idx:stop_idx] = \
-                    self._compute_frame_normalized_range_azimuth_heatmaps(adc_data_cube)
+                for i in range(self.num_previous_frames + 1):
+                    #get the raw ADC data cube
+                    adc_data_cube = self._get_raw_ADC_data_cube(
+                        sample_idx + i)
+
+                    #compute the frame range-azimuth response
+                    range_azimuth_response[:,:,i] = \
+                        self._compute_frame_normalized_range_azimuth_heatmaps(adc_data_cube)
 
 
-            self._save_range_az_spherical_to_file(range_azimuth_response,sample_idx=sample_idx)
+                self._save_range_az_spherical_to_file(range_azimuth_response,sample_idx=sample_idx)
+
+            else:
+                range_azimuth_response = np.zeros((self.max_range_bin,
+                                                np.sum(self.angle_bins_to_keep),
+                                                self.num_chirps_to_save * (self.num_previous_frames + 1)))
+
+                for i in range(self.num_previous_frames + 1):
+                    #get the raw ADC data cube
+                    adc_data_cube = self._get_raw_ADC_data_cube(
+                        sample_idx + i)
+
+                    #compute the frame range-azimuth response
+                    start_idx = i * self.num_chirps_to_save
+                    stop_idx = start_idx + self.num_chirps_to_save
+                    range_azimuth_response[:,:,start_idx:stop_idx] = \
+                        self._compute_frame_normalized_range_azimuth_heatmaps(adc_data_cube)
+
+
+                self._save_range_az_spherical_to_file(range_azimuth_response,sample_idx=sample_idx)
         return
     
     def generate_and_save_all_grids(self, clear_contents=False):
@@ -393,6 +422,12 @@ class RadarDataProcessor:
         for i in range(self.num_chirps_to_save):
             frame_range_az_heatmaps[:,:,i] = self._compute_chirp_normalized_range_azimuth_heatmap(adc_data_cube,chirp=i)
     
+        if self.use_average_range_az:
+            frame_range_az_heatmaps = np.average(frame_range_az_heatmaps, axis=2)
+
+            #add an extra dimmension
+            frame_range_az_heatmaps = frame_range_az_heatmaps[...,np.newaxis]
+        
         return frame_range_az_heatmaps
     
     def _compute_chirp_normalized_range_azimuth_heatmap(self,adc_data_cube:np.ndarray,chirp=0):
