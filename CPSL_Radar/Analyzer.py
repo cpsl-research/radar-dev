@@ -35,8 +35,10 @@ class Analyzer:
 
             self.device = cuda_device
             torch.cuda.set_device(self.device)
+            print("Analyzer.__init__: using GPU: {}".format(cuda_device))
         else:
             self.device = "cpu"
+            print("Analyzer.__init__: using CPU")
         
         #set the dataset generator
         self.dataset_generator = dataset_generator
@@ -65,7 +67,11 @@ class Analyzer:
 
         #put the model into eval mode
         model_path = os.path.join(self.working_dir,self.model_file_name)
-        self.model = torch.load(model_path).to(self.device)
+
+        if self.device != 'cpu':
+            self.model = torch.load(model_path).to(self.device)
+        else:
+            self.model = torch.load(model_path,map_location='cpu').to('cpu')
 
         #put the model into eval mode
         self.model.eval()
@@ -93,7 +99,7 @@ class Analyzer:
 
             #send x to device
             x = x.to(self.device)
-            
+
             #get the prediction and apply sigmoid
             pred = self.model(x).squeeze()
             pred = torch.sigmoid(pred)

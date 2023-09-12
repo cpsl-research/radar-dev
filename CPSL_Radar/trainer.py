@@ -247,7 +247,11 @@ class Trainer:
 
         #save the model
         file_name = "{}.pth".format(self.save_name)
-        torch.save(self.model, os.path.join(self.working_dir,file_name))
+
+        if self.multiple_GPUs and torch.cuda.is_available() and (torch.cuda.device_count() > 1):
+            torch.save(self.model.module.state_dict(),os.path.join(self.working_dir,file_name))
+        else:
+            torch.save(self.model, os.path.join(self.working_dir,file_name))
 
 
     def plot_results(self):
