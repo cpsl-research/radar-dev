@@ -20,11 +20,11 @@ def main():
         dataset_generator=dataset_generator,
         transforms_to_apply= input_transforms,
         working_dir="working_dir/",
-        model_file_name="trained.pth",
+        model_file_name="trained_campus_frames_20e.pth",
         cuda_device="cuda:0"
     )
 
-    viewer.save_video("trained_adding_noise.mp4",fps=10)
+    viewer.save_video("trained_campus_frames_20e.mp4",fps=10)
 
 
 
@@ -80,8 +80,8 @@ def init_dataset_generator(generate_dataset = False):
     lidar_data_folder = "lidar"
 
     #basic dataset settings
-    num_chirps_to_save = 40
-    num_previous_frames = 0
+    num_chirps_to_save = 1
+    num_previous_frames = 40
     use_average_range_az= True
     
 

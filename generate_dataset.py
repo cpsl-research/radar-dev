@@ -47,7 +47,7 @@ test_scenarios_spin = [os.path.join(campus_folder,scenario_folder) for
 #     os.path.join(box_folder,scenario_folder) for 
 #     scenario_folder in box_scenarios[-1]])
 
-scenarios_to_use = test_scenarios
+scenarios_to_use = test_scenarios_spin
 
 #location that we wish to save the dataset to
 generated_dataset_path = "/data/david/CPSL_Ground/test/"
@@ -58,8 +58,8 @@ radar_data_folder = "radar"
 lidar_data_folder = "lidar"
 
 #basic dataset settings
-num_chirps_to_save = 40
-num_previous_frames = 0
+num_chirps_to_save = 1
+num_previous_frames = 20
 use_average_range_az = False
 
 #initialize the DatasetGenerator
