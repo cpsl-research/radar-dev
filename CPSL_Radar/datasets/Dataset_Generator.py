@@ -325,6 +325,7 @@ class DatasetGenerator:
             axs = [],
 
             show = True
+
     ):
         """Plot the radar and lidar data in cartesian and spherical coordinates
 
@@ -364,7 +365,8 @@ class DatasetGenerator:
             
             plt.savefig(jpg_file_path)
             print("save images at ", jpg_file_path)
-            plt.show()
+            # plt.show()
+            # plt.close()
         
     def plot_saved_radar_lidar_data(
             self,
@@ -398,8 +400,8 @@ class DatasetGenerator:
             show=False
         )
 
-        if show:
-            plt.show()
+        # if show:
+            # plt.show()
 
 
 #loading datasets from a file
