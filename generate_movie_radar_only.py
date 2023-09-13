@@ -20,7 +20,7 @@ def main():
         dataset_generator=dataset_generator,
         transforms_to_apply= unet_transforms,
         working_dir="working_dir/",
-        model_file_name="trained.pth",
+        model_state_dict_file_name="trained.pth",
         cuda_device="cuda:0"
     )
 

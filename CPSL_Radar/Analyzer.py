@@ -26,9 +26,10 @@ class Analyzer:
 
     def __init__(self,
                  dataset_generator:DatasetGenerator,
+                 model:Module,
                  transforms_to_apply:list = None,
                  working_dir = "working_dir",
-                 model_file_name = "trained.pth",
+                 model_state_dict_file_name = "trained.pth",
                  cuda_device = "cuda:0"):
 
         if torch.cuda.is_available():
@@ -43,10 +44,10 @@ class Analyzer:
         #set the dataset generator
         self.dataset_generator = dataset_generator
         
-        self.model:Module = None
+        self.model:Module = model
         self.transforms = None
         self.working_dir = working_dir
-        self.model_file_name = model_file_name
+        self.model_file_name = model_state_dict_file_name
 
         #initialize the model
         self._init_model(transforms_to_apply=transforms_to_apply)
@@ -66,12 +67,15 @@ class Analyzer:
     def _init_model(self,transforms_to_apply:list = None):
 
         #put the model into eval mode
-        model_path = os.path.join(self.working_dir,self.model_file_name)
+        state_dict_path = os.path.join(self.working_dir,self.model_file_name)
 
+        #send to specified device
         if self.device != 'cpu':
-            self.model = torch.load(model_path).to(self.device)
+            self.model.load_state_dict(torch.load(state_dict_path))
         else:
-            self.model = torch.load(model_path,map_location='cpu').to('cpu')
+            self.model.load_state_dict(torch.load(state_dict_path,map_location='cpu'))
+        
+        self.model.to(self.device)
 
         #put the model into eval mode
         self.model.eval()
@@ -536,6 +540,22 @@ class Analyzer:
         
         return
 
+#testing the model speed
+    def compute_all_results(self):
+
+        for i in tqdm(range(self.dataset_generator.num_samples)):
+            
+            #get the input/output data
+            original_input = self.dataset_generator.radar_data_processor.load_range_az_spherical_from_file(i)
+
+            #get the prediction
+            prediction = self._make_prediction(original_input)
+
+            #convert to cartesian
+            #convert to spherical and then to cartesian
+            points_spherical = self.grid_to_spherical_points(prediction)
+            points_cartesian = self._convert_spherical_to_cartesian(points_spherical)
+                
 #managing the temp directory
     def _create_temp_dir(self):
 
