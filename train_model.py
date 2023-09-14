@@ -15,10 +15,10 @@ import sys
 def main():
     #initialize the unet
     unet_model = unet(
-        encoder_input_channels= 21,
-        encoder_out_channels= (128,256,512),
-        decoder_input_channels= (1024,512,256),
-        decoder_out_channels= 128,
+        encoder_input_channels= 40,
+        encoder_out_channels= (64,128,256),
+        decoder_input_channels= (512,256,128),
+        decoder_out_channels= 64,
         output_channels= 1,
         retain_dimmension= False,
         input_dimmensions= (64,48)
@@ -44,11 +44,11 @@ def main():
         output_directory="lidar",
         test_split= 0.15,
         working_dir="working_dir",
-        save_name="trained_campus_20_frames_20e",
+        save_name="trained_campus_chirps_smaller",
         input_transforms=input_transforms,
         output_transforms=output_transforms,
         batch_size= 256,
-        epochs=20,
+        epochs=10,
         learning_rate=0.001,
         loss_fn= BCE_DICE_Loss(dice_weight=0.1,dice_smooth=1),
         cuda_device='cuda:0',

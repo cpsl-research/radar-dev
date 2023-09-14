@@ -3,6 +3,7 @@ import os
 import numpy as np
 from CPSL_Radar.Analyzer import Analyzer
 from CPSL_Radar.datasets.Dataset_Generator import DatasetGenerator
+from CPSL_Radar.models.unet import unet
 from torchvision import transforms
 
 def main():
@@ -15,16 +16,28 @@ def main():
         transforms.Resize((64,48))
     ]
 
-   #initialize the viewer
+   #initialize the unet
+    unet_model = unet(
+        encoder_input_channels= 40,
+        encoder_out_channels= (64,128,256),
+        decoder_input_channels= (512,256,128),
+        decoder_out_channels= 64,
+        output_channels= 1,
+        retain_dimmension= False,
+        input_dimmensions= (64,48)
+    )
+
+    #initialize the viewer
     viewer = Analyzer(
         dataset_generator=dataset_generator,
+        model=unet_model,
         transforms_to_apply= input_transforms,
         working_dir="working_dir/",
-        model_state_dict_file_name="trained_campus_frames_20e.pth",
+        model_state_dict_file_name="trained_campus_chirps_smaller.pth",
         cuda_device="cuda:0"
     )
 
-    viewer.save_video("trained_campus_frames_20e.mp4",fps=10)
+    viewer.save_video("trained_campus_chirps_smaller.mp4",fps=10)
 
 
 
@@ -80,9 +93,9 @@ def init_dataset_generator(generate_dataset = False):
     lidar_data_folder = "lidar"
 
     #basic dataset settings
-    num_chirps_to_save = 1
-    num_previous_frames = 40
-    use_average_range_az= True
+    num_chirps_to_save = 40
+    num_previous_frames = 0
+    use_average_range_az = False
     
 
     #initialize the DatasetGenerator
