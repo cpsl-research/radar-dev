@@ -446,8 +446,8 @@ class Analyzer:
 
         #fix the plot titles
         if not self.radar_data_only:
-            axs[0,1].set_title('GT Lidar \nPoint Cloud (Cartesian)',fontsize=Analyzer.font_size_title)
-            axs[1,1].set_title('GT Lidar \nPoint CLoud (Spherical)',fontsize=Analyzer.font_size_title)
+            axs[0,1].set_title('GT Lidar \nPoint Cloud (Cart.)',fontsize=Analyzer.font_size_title)
+            axs[1,1].set_title('GT Lidar \nPoint CLoud (Polar)',fontsize=Analyzer.font_size_title)
         
         #get the prediction
         prediction = self._make_prediction(original_input)
@@ -549,7 +549,7 @@ class Analyzer:
             ax=ax_cartesian,
             show=False
         )
-        ax_cartesian.set_title('Predc Lidar \nPoint Cloud (Cart.)',fontsize=Analyzer.font_size_title)
+        ax_cartesian.set_title('Pred. Lidar \nPoint Cloud (Cart.)',fontsize=Analyzer.font_size_title)
 
         #plot points in spherical
         self.dataset_generator.lidar_data_processor._plot_grid_spherial(

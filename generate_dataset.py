@@ -59,8 +59,8 @@ radar_data_folder = "radar"
 lidar_data_folder = "lidar"
 
 #basic dataset settings
-num_chirps_to_save = 40
-num_previous_frames = 0
+num_chirps_to_save = 1
+num_previous_frames = 40
 use_average_range_az = False
 
 #initialize the DatasetGenerator
