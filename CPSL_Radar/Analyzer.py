@@ -562,20 +562,45 @@ class Analyzer:
         return
     
 #testing the model speed
-    def compute_all_results(self):
+    def compute_all_results(
+            self,
+            scenario_folders:list,
+            radar_data_folder,
+            lidar_data_folder = None):
 
-        for i in tqdm(range(self.dataset_generator.num_samples)):
+        for i in range(len(scenario_folders)):
             
-            #get the input/output data
-            original_input = self.dataset_generator.radar_data_processor.load_range_az_spherical_from_file(i)
+            
+            print("\n\Analyzer.compute_all_results: scenario {} of {}: {}".format(i + 1, len(scenario_folders), scenario_folders[i]))
+            
+            #set the radar and lidar data paths
+            self.dataset_generator.config_radar_lidar_data_paths(
+                scenario_folder=scenario_folders[i],
+                radar_data_folder=radar_data_folder,
+                lidar_data_folder=lidar_data_folder,
+            )
 
-            #get the prediction
-            prediction = self._make_prediction(original_input)
+            num_files = len(self.dataset_generator.radar_data_processor.radar_data_paths)
 
-            #convert to cartesian
-            #convert to spherical and then to cartesian
-            points_spherical = self.grid_to_spherical_points(prediction)
-            points_cartesian = self._convert_spherical_to_cartesian(points_spherical)
+            for j in tqdm(range(num_files - self.dataset_generator.radar_data_processor.num_previous_frames)):
+        
+                if self.dataset_generator.radar_data_processor.num_previous_frames == 0:
+                    #get the raw ADC data cube
+                    adc_data_cube = self.dataset_generator.radar_data_processor._get_raw_ADC_data_cube(j)
+
+                    #compute the frame range-azimuth response
+                    range_azimuth_response = self.dataset_generator.radar_data_processor._compute_frame_normalized_range_azimuth_heatmaps(adc_data_cube)
+        
+                    #get the prediction
+                    prediction = self._make_prediction(range_azimuth_response)
+
+                    #convert to cartesian
+                    #convert to spherical and then to cartesian
+                    points_spherical = self.dataset_generator.lidar_data_processor.grid_to_spherical_points(prediction)
+                    points_cartesian = self.dataset_generator.lidar_data_processor._convert_spherical_to_cartesian(points_spherical)
+
+                else:
+                    print("Analyzer.compute_all_results: only designed to assess configs with multiple chirps, not multiple frames")
                 
 #managing the temp directory
     def _create_temp_dir(self):
