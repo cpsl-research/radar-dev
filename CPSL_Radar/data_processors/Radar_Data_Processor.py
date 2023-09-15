@@ -13,9 +13,11 @@ class RadarDataProcessor:
     #global params
 
     #plotting parameters
-    font_size_title = 14
-    font_size_axis_labels = 12
+    font_size_title = 18
+    font_size_axis_labels = 18
+    font_size_ticks = 16
     font_size_color_bar = 10
+    line_width_axis = 2.5
 
     def __init__(self):
         
@@ -491,7 +493,13 @@ class RadarDataProcessor:
             cmap="gray")
         ax.set_xlabel('X (m)',fontsize=RadarDataProcessor.font_size_axis_labels)
         ax.set_ylabel('Y (m)',fontsize=RadarDataProcessor.font_size_axis_labels)
-        ax.set_title('Range-Azimuth\nHeatmap (Cartesian)',fontsize=RadarDataProcessor.font_size_title)
+        ax.set_title('Range-Azimuth\nHeatmap (Cart.)',fontsize=RadarDataProcessor.font_size_title)
+        ax.tick_params(labelsize=RadarDataProcessor.font_size_ticks)
+
+        #set the line width
+        for axis in ['top', 'bottom', 'left', 'right']:
+            ax.spines[axis].set_linewidth(RadarDataProcessor.line_width_axis) # change width
+
 
         if show:
             plt.show()
@@ -528,6 +536,11 @@ class RadarDataProcessor:
         ax.set_xlabel('Angle(radians)',fontsize=RadarDataProcessor.font_size_axis_labels)
         ax.set_ylabel('Range (m)',fontsize=RadarDataProcessor.font_size_axis_labels)
         ax.set_title('Range-Azimuth\nHeatmap (Polar)',fontsize=RadarDataProcessor.font_size_title)
+        ax.tick_params(labelsize=RadarDataProcessor.font_size_ticks)
+
+        #set the line width
+        for axis in ['top', 'bottom', 'left', 'right']:
+            ax.spines[axis].set_linewidth(RadarDataProcessor.line_width_axis) # change width
 
         #if enable_color_bar:
         #    cbar = self.fig.colorbar(polar_plt)

@@ -3,6 +3,7 @@ import os
 import numpy as np
 from CPSL_Radar.Analyzer import Analyzer
 from CPSL_Radar.datasets.Dataset_Generator import DatasetGenerator
+from CPSL_Radar.models.unet import unet
 from torchvision import transforms
 
 def main():
@@ -10,33 +11,45 @@ def main():
     dataset_generator = init_dataset_generator(generate_dataset=False)
 
     #initialize the transforms
-    unet_transforms = [
+    input_transforms = [
         transforms.ToTensor(),
         transforms.Resize((64,48))
     ]
 
-   #initialize the viewer
+   #initialize the unet
+    unet_model = unet(
+        encoder_input_channels= 40,
+        encoder_out_channels= (64,128,256),
+        decoder_input_channels= (512,256,128),
+        decoder_out_channels= 64,
+        output_channels= 1,
+        retain_dimmension= False,
+        input_dimmensions= (64,48)
+    )
+
+    #initialize the viewer
     viewer = Analyzer(
         dataset_generator=dataset_generator,
-        transforms_to_apply= unet_transforms,
+        model=unet_model,
+        transforms_to_apply= input_transforms,
         working_dir="working_dir/",
-        model_state_dict_file_name="trained.pth",
+        model_state_dict_file_name="trained_campus_chirps_smaller.pth",
         cuda_device="cuda:0"
     )
 
-    viewer.save_video("drone_test.mp4",fps=10)
+    viewer.save_video("trained_campus_chirps_smaller_drone.mp4",fps=10)
 
 
 
 def init_dataset_generator(generate_dataset = False):
-    #initialize the dataset generator
+
     drone_folder = "/data/david/CPSL_Drone/"
-    test_scenarios = ["drone_test"]
+    # test_scenarios = ["drone_test"]
 
-    test_scenarios = [os.path.join(drone_folder,scenario_folder) for
-                    scenario_folder in test_scenarios]
+    # test_scenarios = [os.path.join(drone_folder,scenario_folder) for
+    #                   scenario_folder in test_scenarios]
 
-    scenarios_to_use = test_scenarios
+    scenarios_to_use = [drone_folder]
 
     #location that we wish to save the dataset to
     generated_dataset_path = "/data/david/CPSL_Drone/test/"
@@ -48,6 +61,7 @@ def init_dataset_generator(generate_dataset = False):
     #basic dataset settings
     num_chirps_to_save = 40
     num_previous_frames = 0
+    use_average_range_az = False
 
     #initialize the DatasetGenerator
     dataset_generator = DatasetGenerator(radar_data_only=True)
@@ -57,7 +71,7 @@ def init_dataset_generator(generate_dataset = False):
         generated_file_name=generated_file_name,
         generated_radar_data_folder=radar_data_folder,
         generated_lidar_data_folder=None,
-        clear_existing_data=False
+        clear_existing_data=True
     )
 
     dataset_generator.config_radar_lidar_data_paths(

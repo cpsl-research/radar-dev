@@ -20,8 +20,8 @@ from CPSL_Radar.datasets.Dataset_Generator import DatasetGenerator
 
 class Analyzer:
 
-    font_size_title = 14
-    font_size_axis_labels = 12
+    font_size_title = 18
+    font_size_axis_labels = 18
     line_width = 3
 
     def __init__(self,
@@ -222,7 +222,7 @@ class Analyzer:
 
         return sorted_data[idx]
     
-    def compute_all_distance_metrics(self):
+    def compute_all_distance_metrics(self, save_to_file=False,file_name = "trained"):
 
         if not self.radar_data_only:
             #initialize arrays to store the distributions in (standard metrics)
@@ -247,9 +247,30 @@ class Analyzer:
                 self.dataset_generator.num_samples,
                 float(self.num_failed_predictions) / float(self.dataset_generator.num_samples)
             ))
+            
+            #save metrics to .npy file if set to true
+            if save_to_file:
+                
+                #save chamfer
+                name = "{}_chamfer.npy".format(file_name)
+                np.save(name,chamfer_distances)
+
+                #save hausdroff
+                name = "{}_hausdorff.npy".format(file_name)
+                np.save(name,hausdorff_distances)
+
+                #save chamfer - RadarHD
+                name = "{}_chamfer_RadarHD.npy".format(file_name)
+                np.save(name,chamfer_distances_radarHD)
+
+                #save hausdroff
+                name = "{}_hausdorff_RadarHD.npy".format(file_name)
+                np.save(name,modified_hausdorff_distances_radarHD)
+
             return chamfer_distances,hausdorff_distances, chamfer_distances_radarHD, modified_hausdorff_distances_radarHD
         else:
             print("analyzer.compute_all_distance_metrics: attempted to compute distance metrics, but radar_data_only flag was true (from dataset generator)")
+
     
     def _compute_distance_metrics(self,sample_idx, print_result = False):
         """Returns the chamfer and hausdorff distances between the points in the ground truth point cloud and predicted point cloud
@@ -406,11 +427,11 @@ class Analyzer:
 
         if len(axs)==0:
             if self.radar_data_only:
-                fig,axs = plt.subplots(nrows=2,ncols=2,figsize=(10,10))
-                fig.subplots_adjust(wspace=0.2,hspace=0.4)
+                fig,axs = plt.subplots(nrows=2,ncols=2,figsize=(7.66,7))
+                fig.subplots_adjust(wspace=0.4,hspace=0.56)
             else:
-                fig,axs = plt.subplots(nrows=2,ncols=3,figsize=(15,10))
-                fig.subplots_adjust(wspace=0.2,hspace=0.4)
+                fig,axs = plt.subplots(nrows=2,ncols=3,figsize=(11.5,7))
+                fig.subplots_adjust(wspace=0.4,hspace=0.56)
         
         #get the input/output data
         original_input = self.dataset_generator.radar_data_processor.load_range_az_spherical_from_file(sample_idx)
@@ -425,8 +446,8 @@ class Analyzer:
 
         #fix the plot titles
         if not self.radar_data_only:
-            axs[0,1].set_title('Ground Truth\nLidar Point Cloud (Cartesian)',fontsize=Analyzer.font_size_title)
-            axs[1,1].set_title('Ground Truth\nLidar Point CLoud (Spherical)',fontsize=Analyzer.font_size_title)
+            axs[0,1].set_title('GT Lidar \nPoint Cloud (Cartesian)',fontsize=Analyzer.font_size_title)
+            axs[1,1].set_title('GT Lidar \nPoint CLoud (Spherical)',fontsize=Analyzer.font_size_title)
         
         #get the prediction
         prediction = self._make_prediction(original_input)
@@ -528,7 +549,7 @@ class Analyzer:
             ax=ax_cartesian,
             show=False
         )
-        ax_cartesian.set_title('Predicted\nLidar Point Cloud (Cartesian)',fontsize=Analyzer.font_size_title)
+        ax_cartesian.set_title('Predc Lidar \nPoint Cloud (Cart.)',fontsize=Analyzer.font_size_title)
 
         #plot points in spherical
         self.dataset_generator.lidar_data_processor._plot_grid_spherial(
@@ -536,10 +557,10 @@ class Analyzer:
             ax = ax_spherical,
             show=False
         )
-        ax_spherical.set_title('Predicted\nLidar Point Cloud (Spherical)',fontsize=Analyzer.font_size_title)
+        ax_spherical.set_title('Pred. Lidar \nPoint Cloud (Polar)',fontsize=Analyzer.font_size_title)
         
         return
-
+    
 #testing the model speed
     def compute_all_results(self):
 

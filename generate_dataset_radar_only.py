@@ -7,16 +7,16 @@ import matplotlib.pyplot as plt
 #import CPSL Radar Dataset Generator Code
 from CPSL_Radar.datasets.Dataset_Generator import DatasetGenerator
 
-drone_folder = "/data/david/CPSL_Drone/"
-test_scenarios = ["drone_test"]
+drone_folder = "/home/david/CPSL_Drone/"
+# test_scenarios = ["drone_test"]
 
-test_scenarios = [os.path.join(drone_folder,scenario_folder) for
-                  scenario_folder in test_scenarios]
+# test_scenarios = [os.path.join(drone_folder,scenario_folder) for
+#                   scenario_folder in test_scenarios]
 
-scenarios_to_use = test_scenarios
+scenarios_to_use = [drone_folder]
 
 #location that we wish to save the dataset to
-generated_dataset_path = "/data/david/CPSL_Drone/test/"
+generated_dataset_path = "/home/david/CPSL_Drone/test/"
 
 #specifying the names for the files
 generated_file_name = "frame"
@@ -25,6 +25,7 @@ radar_data_folder = "radar"
 #basic dataset settings
 num_chirps_to_save = 40
 num_previous_frames = 0
+use_average_range_az = False
 
 #initialize the DatasetGenerator
 dataset_generator = DatasetGenerator(radar_data_only=True)

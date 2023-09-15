@@ -14,8 +14,10 @@ class LidarDataProcessor:
 
     #global plotting parameters
 
-    font_size_title = 14
-    font_size_axis_labels = 12
+    font_size_title = 18
+    font_size_axis_labels = 18
+    font_size_ticks = 16
+    line_width_axis = 2.5
 
     def __init__(self):
         
@@ -364,12 +366,18 @@ class LidarDataProcessor:
         points_cartesian = np.dot(points_cartesian,rotation_matrix_CPSL_gnd)
 
 
-        ax.scatter(points_cartesian[:, 0], points_cartesian[:, 1],s=0.5)
+        ax.scatter(points_cartesian[:, 0], points_cartesian[:, 1],s=10)
         ax.set_xlabel('Y (m)',fontsize=LidarDataProcessor.font_size_axis_labels)
         ax.set_ylabel('X (m)',fontsize=LidarDataProcessor.font_size_axis_labels)
-        ax.set_title('Lidar Point Cloud (Cartesian)',fontsize=LidarDataProcessor.font_size_title)
+        ax.set_title('Lidar Point Cloud (Cart.)',fontsize=LidarDataProcessor.font_size_title)
+        ax.tick_params(labelsize=LidarDataProcessor.font_size_ticks)
         ax.set_ylim(0,self.max_range_m)
         ax.set_xlim(-1 * self.max_range_m, self.max_range_m)
+
+        #set the line width
+        for axis in ['top', 'bottom', 'left', 'right']:
+            ax.spines[axis].set_linewidth(LidarDataProcessor.line_width_axis) # change width
+
         if show:
             plt.show()
 
@@ -392,8 +400,14 @@ class LidarDataProcessor:
                 aspect='auto')
         ax.set_ylabel('Range (m)',fontsize=LidarDataProcessor.font_size_axis_labels)
         ax.set_xlabel('Azimuth (rad)',fontsize=LidarDataProcessor.font_size_axis_labels)
-        ax.set_title('Lidar Point Cloud (Spherical)',fontsize=LidarDataProcessor.font_size_title)
-        
+        ax.set_title('Lidar Point Cloud (Polar)',fontsize=LidarDataProcessor.font_size_title)
+        ax.tick_params(labelsize=LidarDataProcessor.font_size_ticks)
+
+        #set the line width
+        for axis in ['top', 'bottom', 'left', 'right']:
+            ax.spines[axis].set_linewidth(LidarDataProcessor.line_width_axis) # change width
+
+
         if show:
             plt.show()
 

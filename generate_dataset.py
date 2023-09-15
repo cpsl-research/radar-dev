@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from CPSL_Radar.datasets.Dataset_Generator import DatasetGenerator
 
 #campus dataset folders
-campus_folder = "/data/david/CPSL_Ground/campus_datasets/"
+campus_folder = "/home/david/CPSL_Ground/campus_datasets/"
 
 campus_scenarios = ["scene_{}".format(i+1) for i in range(7)]
 campus_test_scenarios = ["scene_{}_test".format(i+1) for i in range(7)]
@@ -47,10 +47,10 @@ test_scenarios_spin = [os.path.join(campus_folder,scenario_folder) for
 #     os.path.join(box_folder,scenario_folder) for 
 #     scenario_folder in box_scenarios[-1]])
 
-scenarios_to_use = test_scenarios
+scenarios_to_use = test_scenarios_spin
 
 #location that we wish to save the dataset to
-generated_dataset_path = "/data/david/CPSL_Ground/test/"
+generated_dataset_path = "/home/david/CPSL_Ground/test/"
 
 #specifying the names for the files
 generated_file_name = "frame"
@@ -58,8 +58,8 @@ radar_data_folder = "radar"
 lidar_data_folder = "lidar"
 
 #basic dataset settings
-num_chirps_to_save = 40
-num_previous_frames = 0
+num_chirps_to_save = 1
+num_previous_frames = 20
 use_average_range_az = False
 
 #initialize the DatasetGenerator
