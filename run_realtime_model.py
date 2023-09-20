@@ -44,7 +44,7 @@ class RealTimeModel():
     def _connect_to_radar(self):
 
         print("Connecting to listener")
-        address = ('localhost', 6001)     # family is deduced to be 'AF_INET'
+        address = ('localhost', 6004)     # family is deduced to be 'AF_INET'
         authkey_str = "DCA1000_client"
         self.conn = Client(address, authkey=authkey_str.encode())
         print("Connected to listener")
