@@ -162,6 +162,7 @@ class LidarDataProcessor:
         self._plot_points_cartesian(points_cartesian,ax=ax_cartesian,show=False)
 
         #generate the spherical points as a grid
+        # to map 3D lidar points into a 2D grid format -xiao
         grid = self.points_spherical_to_grid(points_spherical)
         self._plot_grid_spherial(grid,ax=ax_spherical,show=False)
 
@@ -195,6 +196,7 @@ class LidarDataProcessor:
             ax_spherical = axs[1]
 
         #load the grid
+        # load npy file with related index-xiao
         grid_spherical = self.load_grid_from_file(sample_idx)
 
         #convert to spherical and then to cartesian
@@ -362,10 +364,10 @@ class LidarDataProcessor:
                                              [0,-1,0],
                                              [0,0,1]])
         
-        #rotate the points
+        #rotate the points  dot is the function of multiply-xiao
         points_cartesian = np.dot(points_cartesian,rotation_matrix_CPSL_gnd)
 
-
+        # scatter is to draw points-xiao
         ax.scatter(points_cartesian[:, 0], points_cartesian[:, 1],s=10)
         ax.set_xlabel('Y (m)',fontsize=LidarDataProcessor.font_size_axis_labels)
         ax.set_ylabel('X (m)',fontsize=LidarDataProcessor.font_size_axis_labels)
@@ -436,7 +438,7 @@ class LidarDataProcessor:
         Returns:
             (np.ndarray): Nx3 matrix of  points in cartesian (x,y,z)
         """
-
+        # original is the polar, now calculate into the cartesian?? -xiao
         x = points_spherical[:,0] * np.sin(points_spherical[:,2]) * np.cos(points_spherical[:,1])
         y = points_spherical[:,0] * np.sin(points_spherical[:,2]) * np.sin(points_spherical[:,1])
         z = points_spherical[:,0] * np.cos(points_spherical[:,2])

@@ -172,6 +172,7 @@ class RadarDataProcessor:
         
         #mesh grid coordinates for plotting
         self.thetas,self.rhos = np.meshgrid(self.angle_bins[self.angle_bins_to_keep],self.range_bins[:self.max_range_bin])
+        # convert polar to cartesian - xiao
         self.x_s = np.multiply(self.rhos,np.sin(self.thetas))
         self.y_s = np.multiply(self.rhos,np.cos(self.thetas))
 
@@ -449,6 +450,7 @@ class RadarDataProcessor:
         data[:,0:self.rx_channels] = np.transpose(adc_data_cube[:,:,chirp])
 
         #compute Range FFT
+        # use Range FFT to convert sampled IF data to polar 2D grid-xiao
         data = np.fft.fftshift(np.fft.fft(data,axis=0))
 
         #compute azimuth response

@@ -601,7 +601,27 @@ class Analyzer:
 
                 else:
                     print("Analyzer.compute_all_results: only designed to assess configs with multiple chirps, not multiple frames")
-                
+
+#computing 3d point cloud in real time
+    def compute_predicted_point_cloud_cartesian(self,range_azimuth_response):
+            """ Compute the predicted point cloud in cartesian (for real time operation)
+            
+            Args:
+                range_azimuth_response (np.ndarray): the normalized range azimuth response that is input into the model
+            
+            Returns:
+                np.ndarray: Nx3 point cloud of the predicted point cloud in cartesian coordinates
+            """
+
+            #get the prediction
+            prediction = self._make_prediction(range_azimuth_response)
+
+            #convert to cartesian
+            #convert to spherical and then to cartesian
+            points_spherical = self.dataset_generator.lidar_data_processor.grid_to_spherical_points(prediction)
+            points_cartesian = self.dataset_generator.lidar_data_processor._convert_spherical_to_cartesian(points_spherical)
+
+            return points_cartesian
 #managing the temp directory
     def _create_temp_dir(self):
 
