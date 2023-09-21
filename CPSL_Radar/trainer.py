@@ -188,6 +188,7 @@ class Trainer:
             
             for (x,y) in self.train_data_loader:
 
+                # the x is the radar data, y is lidar-ground truth  -xiao
                 #send the input to the device
                 (x,y) = (x.to(self.device),y.to(self.device))
 

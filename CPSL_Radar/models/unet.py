@@ -42,7 +42,7 @@ class _Block(Module):
     
     def forward(self,x):
         """perform a forward pass of the Block convolution
-
+        
         Args:
             x (Tensor): #TODO: get the dimmensions of the input tensor
 

@@ -3,6 +3,8 @@ from torchvision.transforms import Compose
 import torch
 import numpy as np
 
+
+# used for image segmentation tasks -xiao   the mask is 0 or 1 grid
 class SegmentationDataset(Dataset):
 
     def __init__(self,input_paths:list,mask_paths:list,transforms:list = None):

@@ -317,7 +317,7 @@ class DatasetGenerator:
             self.generate_dataset(clear_contents= clear_contents)
 
 #plotting
-# use this function, it can show images, I am trying to alao save jpgs when call here
+# use this function, it can show images, I am trying to alao save jpgs when call here -xiao
 
     def plot_radar_lidar_data(
             self,
@@ -327,7 +327,7 @@ class DatasetGenerator:
             show = True
 
     ):
-        """Plot the radar and lidar data in cartesian and spherical coordinates
+        """Plot the radar and lidar data in cartesian and spherical coordinates   spherical = polar  -xiao
 
         Args:
             sample_idx (int): The sample index,
@@ -366,7 +366,8 @@ class DatasetGenerator:
             plt.savefig(jpg_file_path)
             print("save images at ", jpg_file_path)
             # plt.show()
-            # plt.close()
+            # close, then it will not show-xiao
+            plt.close()
         
     def plot_saved_radar_lidar_data(
             self,
