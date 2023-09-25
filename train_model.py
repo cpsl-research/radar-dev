@@ -32,7 +32,9 @@ def main():
     #initialize the model training
     model_trainer = Trainer(
         model= unet_model,
-        dataset_path= "/data/david/CPSL_Ground/train",
+        # david change the dataset path into /home/david/CPSL_Ground/train
+        dataset_path= "/home/david/CPSL_Ground/train",
+        # dataset_path= "/data/david/CPSL_Ground/train",
         input_directory="radar",
         output_directory="lidar",
         test_split= 0.15,
